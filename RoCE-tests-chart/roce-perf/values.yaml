@@ -1,0 +1,139 @@
+# =============================================================================
+# roce-perf values
+# =============================================================================
+# Full benchmark image: perftest (plain + CUDA/GPUDirect), nccl-tests + OpenMPI,
+# python plotting stack. Build from ../Dockerfile.
+image: docker.io/roi12345/it-ai-rdma-perf:v1
+imagePullPolicy: IfNotPresent
+
+# SR-IOV RDMA device-plugin resource. Every pod requests exactly one VF.
+rdmaResourceName: openshift.io/RDMA_RESOURCE
+ipcLock: true                       # required for memory registration
+
+# Default NAD if a pod entry doesn't set its own .network
+network: roce-net
+
+# Device name seen INSIDE a pod that owns a single RDMA VF (usually mlx5_0).
+defaultDevice: mlx5_0
+
+# Common fabric parameter shared by all perftest invocations.
+mtu: 4096
+
+script:
+  fileName: roce_bench.sh           # main runner, must exist under files/
+  mountPath: /opt/roce
+
+# Shared results location. The report Job reads EVERY pod's run dirs from here,
+# so for graphs this should be an RWX PVC. Without it each pod keeps results in
+# its own emptyDir (usable for a single-pod manual run, not for the report).
+results:
+  pvcName: ""
+  mountPath: /results
+
+# -----------------------------------------------------------------------------
+# Phase-1 benchmark matrix. Each test is rendered into the pod environment and
+# consumed by roce_bench.sh. Toggle tests with .enabled.
+#   BW  tests run for a duration (-D) over a list of message sizes (-s).
+#   LAT tests run a fixed iteration count (-n) and dump raw unsorted samples
+#       (-U) so the report Job can build CDF/histogram and percentiles.
+# -----------------------------------------------------------------------------
+benchmarks:
+  bw:
+    read:                           # 1.1 Read-only BW  (ib_read_bw)
+      enabled: true
+      duration: 10                  # seconds (-D)
+      sizes: [65536, 1048576]       # bytes (-s), one run per size
+      qps: 8                        # number of QPs (-q)
+    write:                          # 1.2 Write-only BW (ib_write_bw)
+      enabled: true
+      duration: 10
+      sizes: [65536, 1048576]
+      qps: 8
+  lat:
+    write:                          # 1.3 Write-only Lat (ib_write_lat) + histogram
+      enabled: true
+      iters: 100000                 # -n
+      size: 2                       # bytes (-s)
+      unsorted: true                # -U raw samples for graphing
+    read:                           # 1.4 Read-only Lat (ib_read_lat) + histogram
+      enabled: true
+      iters: 100000
+      size: 2
+      unsorted: true
+    send:                           # 1.5 Send Lat (ib_send_lat) + histogram
+      enabled: true
+      iters: 100000
+      size: 2
+      unsorted: true
+
+# 1.6 GPUDirect: re-run the perftest matrix above with --use_cuda=<gpuIndex>.
+# Requires the CUDA image and a GPU on the node (adds nvidia.com/gpu request).
+gpudirect:
+  enabled: false
+  gpuIndex: 0
+
+# 1.7 NCCL one-HCA-vs-all. Heaviest path; run manually via mpirun between the
+# two 1-to-1 pods (see NOTES.txt). Default off.
+nccl:
+  enabled: false
+  collective: all_reduce_perf
+  sizes:
+    begin: "8"                      # -b
+    end: "128M"                     # -e
+    factor: "2"                     # -f
+  gpusPerProc: 1                    # -g
+  hcaOne: mlx5_0                    # NCCL_IB_HCA for the "one port" run
+  hcaAll: "mlx5_0,mlx5_1,mlx5_2,mlx5_3,mlx5_4,mlx5_5,mlx5_6,mlx5_7"  # "many"
+
+# In-cluster plotting/report Job: reads results PVC, emits PNGs + report.html
+# under <results.mountPath>/report. Requires results.pvcName (RWX).
+report:
+  enabled: false
+  outputSubdir: report
+
+# -----------------------------------------------------------------------------
+# 1-to-1 topology. One server + two clients gives both environments at once:
+#   same-leaf  (2.1): client VF on the SAME leaf as the server
+#   spine      (2.2): client VF on a DIFFERENT leaf -> crosses the spine
+# role=server autostarts the listeners; role=client sleeps so you exec in and
+# run the suite once the server IP is known (target). env-label tags the run dir.
+# -----------------------------------------------------------------------------
+pods:
+  - name: rdma-server
+    role: server
+    node: worker-1
+    network: roce-net           # VF on the SAME leaf as the leaf-client
+    device: mlx5_0
+    autostart: true
+
+  - name: rdma-client-leaf
+    role: client
+    node: worker-2
+    network: roce-net-leaf      # VF on the same leaf as the server
+    device: mlx5_0
+    label: same-leaf            # env-label -> /results/same-leaf-<ts>/
+    target: ""                  # server's RoCE-network IP (from NAD IPAM)
+    autostart: false
+
+  - name: rdma-client-spine
+    role: client
+    node: worker-2
+    network: roce-net-spine     # VF on a different leaf -> crosses the spine
+    device: mlx5_0
+    label: spine-crossing       # env-label -> /results/spine-crossing-<ts>/
+    target: ""
+    autostart: false
+
+# -----------------------------------------------------------------------------
+# DEFERRED (Phase 2, env 2.3 many-to-many): scaffold that stamps one idle
+# toolbox pod per (node, rail). Off for now; the 1-to-1 flow above is the
+# supported path. NAD naming: <nadPrefix>-<node>-rail<i> (i = 0..railsPerNode-1).
+# -----------------------------------------------------------------------------
+mesh:
+  enabled: false
+  nodes:
+    - worker-1
+    - worker-2
+  railsPerNode: 8
+  nadPrefix: roce-net
+  device: mlx5_0

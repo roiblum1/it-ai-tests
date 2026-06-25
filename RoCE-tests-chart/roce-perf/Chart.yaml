@@ -1,0 +1,6 @@
+apiVersion: v2
+name: roce-perf
+description: RoCEv2 leaf/spine perftest harness for OpenShift (SR-IOV RDMA, one VF per pod)
+type: application
+version: 0.1.0
+appVersion: "1.0"

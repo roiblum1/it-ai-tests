@@ -1,0 +1,30 @@
+{{- if .Values.mesh.enabled -}}
+{{- $root := . -}}
+{{- $m := .Values.mesh -}}
+{{- $dev := $m.device | default $root.Values.defaultDevice -}}
+{{- $script := printf "%s/%s" $root.Values.script.mountPath $root.Values.script.fileName -}}
+{{- range $node := $m.nodes }}
+{{- range $i := until (int $m.railsPerNode) }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rdma-{{ $node }}-rail{{ $i }}
+  labels:
+    {{- include "roce-perf.labels" $root | nindent 4 }}
+    roce-perf/mesh: "true"
+    roce-perf/node: {{ $node }}
+    roce-perf/rail: "{{ $i }}"
+  annotations:
+    k8s.v1.cni.cncf.io/networks: {{ printf "%s-%s-rail%d" $m.nadPrefix $node (int $i) | quote }}
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: {{ $node }}
+  containers:
+    {{- include "roce-perf.container" (dict "ctx" $root "device" $dev "command" (toJson (list "sleep" "infinity"))) | nindent 4 }}
+  volumes:
+    {{- include "roce-perf.volumes" $root | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

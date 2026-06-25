@@ -1,0 +1,42 @@
+roce-perf installed as release "{{ .Release.Name }}".
+
+Pods (1-to-1 environments):
+{{- range .Values.pods }}
+  - {{ .name }}  (role={{ .role }}, node={{ .node }}, net={{ .network | default $.Values.network }}{{ with .label }}, env={{ . }}{{ end }})
+{{- end }}
+
+Benchmark matrix (toggle in values.benchmarks): read/write BW (-D,-s), write/read/send Lat (-U).
+{{- if .Values.gpudirect.enabled }}
+GPUDirect: ON (--use_cuda={{ .Values.gpudirect.gpuIndex }}) — matrix re-runs into the gpudirect/ subtree.
+{{- end }}
+{{- if not .Values.results.pvcName }}
+
+WARNING: results.pvcName is empty -> each pod writes to its own emptyDir. Set an
+RWX PVC so the report Job can read every environment's run dir.
+{{- end }}
+
+1) Find the server's RoCE-network IP (clients need it as <server_ip>):
+   oc get pod rdma-server -o jsonpath='{.metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}' | \
+     jq -r '.[] | select(.name|test("roce")) | .ips[0]'
+
+2) Run the matrix from each client (same-leaf vs spine-crossing):
+   oc exec -it rdma-client-leaf  -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client mlx5_0 <server_ip> same-leaf
+   oc exec -it rdma-client-spine -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client mlx5_0 <server_ip> spine-crossing
+   -> each writes {{ .Values.results.mountPath }}/<env>-<ts>/ {setup.json, bw/*.csv, lat/*.unsorted.txt + *.json}
+
+3) Generate comparison graphs + report.html:
+{{- if .Values.report.enabled }}
+   The report Job ran on install/upgrade; output is at {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html
+   Re-run after new results:  oc delete job {{ include "roce-perf.fullname" . }}-report && helm upgrade {{ .Release.Name }} <chart>
+{{- else }}
+   Enable the in-cluster plot Job:  helm upgrade {{ .Release.Name }} <chart> --set report.enabled=true --set results.pvcName=<rwx-pvc>
+   -> writes {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html (latency CDFs, BW bars, setup table)
+{{- end }}
+
+{{- if .Values.nccl.enabled }}
+
+NCCL one-HCA-vs-all (1.7): requires sshd up on BOTH pods + key auth between them.
+   oc exec -it rdma-client-leaf -- bash {{ .Values.script.mountPath }}/nccl_one_vs_many.sh <peer_pod_ip> nccl-2pods
+{{- end }}
+
+Deferred: env 2.3 many-to-many (mesh.enabled) and 2.4 tail-latency-under-load.

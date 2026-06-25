@@ -1,0 +1,37 @@
+{{- if .Values.report.enabled }}
+{{- if not .Values.results.pvcName }}
+{{- fail "report.enabled=true requires results.pvcName (an RWX PVC) so the report Job can read every pod's run dirs" }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "roce-perf.fullname" . }}-report
+  labels:
+    {{- include "roce-perf.labels" . | nindent 4 }}
+    roce-perf/role: report
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "roce-perf.labels" . | nindent 8 }}
+        roce-perf/role: report
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: report
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - python3
+            - {{ .Values.script.mountPath }}/plot_report.py
+            - {{ .Values.results.mountPath }}
+            - {{ .Values.report.outputSubdir }}
+          volumeMounts:
+            - name: scripts
+              mountPath: {{ .Values.script.mountPath }}
+            - name: results
+              mountPath: {{ .Values.results.mountPath }}
+      volumes:
+        {{- include "roce-perf.volumes" . | nindent 8 }}
+{{- end }}

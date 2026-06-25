@@ -1,0 +1,34 @@
+{{- $root := . -}}
+{{- range .Values.pods }}
+{{- $dev := .device | default $root.Values.defaultDevice -}}
+{{- $script := printf "%s/%s" $root.Values.script.mountPath $root.Values.script.fileName -}}
+{{- $cmd := list "sleep" "infinity" -}}
+{{- if .autostart -}}
+  {{- if eq .role "server" -}}
+    {{- $cmd = list "bash" $script "server" $dev -}}
+  {{- else -}}
+    {{- $cmd = list "bash" $script "client" $dev .target (.label | default .name) -}}
+  {{- end -}}
+{{- end }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "roce-perf.labels" $root | nindent 4 }}
+    roce-perf/role: {{ .role }}
+    {{- with .label }}
+    roce-perf/path: {{ . }}
+    {{- end }}
+  annotations:
+    k8s.v1.cni.cncf.io/networks: {{ .network | default $root.Values.network | quote }}
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: {{ .node }}
+  containers:
+    {{- include "roce-perf.container" (dict "ctx" $root "device" $dev "command" (toJson $cmd)) | nindent 4 }}
+  volumes:
+    {{- include "roce-perf.volumes" $root | nindent 4 }}
+{{- end }}
