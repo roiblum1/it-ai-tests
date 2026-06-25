@@ -12,6 +12,13 @@ one-HCA-vs-all test.
 
 > Architecture and contributor details live in [CLAUDE.md](CLAUDE.md).
 
+## Scope
+
+Implemented now — the **1-to-1** server↔client flow: basic RDMA bandwidth/latency
+perfs, GPUDirect, and the NCCL one-vs-many test, across same-leaf and
+spine-crossing. **Not built yet:** many-to-many (env 2.3) and
+tail-latency-under-load (env 2.4) — to be added once the 1-to-1 flow is finalized.
+
 ## How the topology maps
 
 Each node has 8 RoCE rails (one NIC per GPU). Every rail is its own SR-IOV

@@ -87,7 +87,7 @@ Gated by `report.enabled`; **fails template rendering if `results.pvcName` is un
 
 ## Deferred / not yet built
 
-- Env 2.3 **many-to-many** (the `mesh.enabled` scaffold in [templates/mesh.yaml](roce-perf/templates/mesh.yaml) stamps idle pods but has no orchestrator) and 2.4 **tail-latency-under-load**.
+- Env 2.3 **many-to-many** and 2.4 **tail-latency-under-load** — not built yet; to be added after the 1-to-1 flow (basic perfs + GPUDirect + NCCL) is finalized. An earlier `mesh.yaml` scaffold was removed to keep scope tight.
 - A multi-pair coordinator for many-to-many — `run_suite.sh` automates only the 1-to-1 flow (IP discovery + launching the two clients).
 - NCCL ([nccl_one_vs_many.sh](roce-perf/files/nccl_one_vs_many.sh)) is gated off; it needs `sshd` up on both pods + key auth for `mpirun`.
 

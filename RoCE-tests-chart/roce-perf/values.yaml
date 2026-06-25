@@ -122,17 +122,3 @@ scenario:
   spine:
     node: worker-2
     nic: ens196               # leaf 2  -> crosses the spine
-
-# -----------------------------------------------------------------------------
-# DEFERRED (Phase 2, env 2.3 many-to-many): scaffold that stamps one idle
-# toolbox pod per (node, rail). Off for now; the 1-to-1 flow above is the
-# supported path. NAD naming: <nadPrefix>-<node>-rail<i> (i = 0..railsPerNode-1).
-# -----------------------------------------------------------------------------
-mesh:
-  enabled: false
-  nodes:
-    - worker-1
-    - worker-2
-  railsPerNode: 8
-  nadPrefix: roce-net
-  device: mlx5_0

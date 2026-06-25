@@ -11,6 +11,10 @@ contributor guide).
 |---|---|---|
 | RoCE leaf/spine RDMA | [RoCE-tests-chart/](RoCE-tests-chart/) | RDMA bandwidth & latency on a Port2Port SR-IOV fabric — **same-leaf vs spine-crossing**, optionally over GPUDirect, plus an NCCL one-HCA-vs-all test, rendered into comparison graphs. |
 
+Current scope is the **1-to-1** server↔client flow (basic RDMA bandwidth/latency,
+GPUDirect, NCCL one-vs-many). Many-to-many and tail-latency-under-load are planned
+but not yet built.
+
 > More subjects are added as sibling folders, each following the same
 > `README.md` + `CLAUDE.md` convention.
 

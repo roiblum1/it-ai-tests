@@ -53,4 +53,4 @@ NCCL one-HCA-vs-all (1.7): requires sshd up on BOTH pods + key auth between them
    oc exec -n {{ .Release.Namespace }} rdma-client-leaf -- bash {{ .Values.script.mountPath }}/nccl_one_vs_many.sh <peer_pod_ip> nccl-2pods
 {{- end }}
 
-Deferred: env 2.3 many-to-many (mesh.enabled) and 2.4 tail-latency-under-load.
+Not built yet: many-to-many (env 2.3) and tail-latency-under-load (env 2.4).
