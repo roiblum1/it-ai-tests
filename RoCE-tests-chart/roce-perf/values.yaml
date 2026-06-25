@@ -6,15 +6,27 @@
 image: docker.io/roi12345/it-ai-rdma-perf:v1
 imagePullPolicy: IfNotPresent
 
-# SR-IOV RDMA device-plugin resource. Every pod requests exactly one VF.
-rdmaResourceName: openshift.io/RDMA_RESOURCE
-ipcLock: true                       # required for memory registration
+# Pods run privileged so in-pod diagnostics (ping/traceroute, which need raw/ICMP
+# sockets) work under any OpenShift SCC, alongside RDMA. IPC_LOCK is kept for the
+# memory registration the RDMA stack needs (and for a non-privileged fallback).
+privileged: true
+ipcLock: true
 
-# Default NAD if a pod entry doesn't set its own .network
-network: roce-net
-
-# Device name seen INSIDE a pod that owns a single RDMA VF (usually mlx5_0).
-defaultDevice: mlx5_0
+# -----------------------------------------------------------------------------
+# Port2Port RoCE topology.
+#
+# Each node exposes 8 RoCE rails (one NIC per GPU); each rail is its own SR-IOV
+# device-plugin resource and its own Multus NAD (carrying that rail's exclusive
+# IP + next hop). The first 4 rails land on leaf 1, the next 4 on leaf 2.
+#
+# A pod is therefore pinned by a (node, nic) pair, from which we DERIVE:
+#   NAD name           = nadPattern      with {node}/{nic} substituted
+#   device-plugin rsrc = resourcePattern with {nic}        substituted
+# -----------------------------------------------------------------------------
+topology:
+  nadPattern: "{node}-{nic}"                            # e.g. worker-1-ens192
+  resourcePattern: "openshift.io/rdma_resource_{nic}"   # e.g. openshift.io/rdma_resource_ens192
+  device: mlx5_0                                        # in-pod RDMA device (one VF per pod); "auto" detects it
 
 # Common fabric parameter shared by all perftest invocations.
 mtu: 4096
@@ -92,37 +104,24 @@ report:
   outputSubdir: report
 
 # -----------------------------------------------------------------------------
-# 1-to-1 topology. One server + two clients gives both environments at once:
-#   same-leaf  (2.1): client VF on the SAME leaf as the server
-#   spine      (2.2): client VF on a DIFFERENT leaf -> crosses the spine
-# role=server autostarts the listeners; role=client sleeps so you exec in and
-# run the suite once the server IP is known (target). env-label tags the run dir.
+# 1-to-1 scenario. One server + two clients gives both environments at once.
+# Leaf vs spine is purely WHICH NIC each endpoint uses:
+#   same-leaf      (2.1): client on the SAME rail/leaf as the server (no spine)
+#   spine-crossing (2.2): client on a rail that lands on a DIFFERENT leaf
+# The chart stamps three pods (rdma-server, rdma-client-leaf, rdma-client-spine);
+# the server autostarts its listeners, the clients idle until run_suite.sh drives
+# them. Each (node, nic) below is turned into a NAD + resource via topology above.
 # -----------------------------------------------------------------------------
-pods:
-  - name: rdma-server
-    role: server
+scenario:
+  server:
     node: worker-1
-    network: roce-net           # VF on the SAME leaf as the leaf-client
-    device: mlx5_0
-    autostart: true
-
-  - name: rdma-client-leaf
-    role: client
+    nic: ens192               # leaf 1
+  sameLeaf:
     node: worker-2
-    network: roce-net-leaf      # VF on the same leaf as the server
-    device: mlx5_0
-    label: same-leaf            # env-label -> /results/same-leaf-<ts>/
-    target: ""                  # server's RoCE-network IP (from NAD IPAM)
-    autostart: false
-
-  - name: rdma-client-spine
-    role: client
+    nic: ens192               # leaf 1  -> same leaf as server, no spine hop
+  spine:
     node: worker-2
-    network: roce-net-spine     # VF on a different leaf -> crosses the spine
-    device: mlx5_0
-    label: spine-crossing       # env-label -> /results/spine-crossing-<ts>/
-    target: ""
-    autostart: false
+    nic: ens196               # leaf 2  -> crosses the spine
 
 # -----------------------------------------------------------------------------
 # DEFERRED (Phase 2, env 2.3 many-to-many): scaffold that stamps one idle

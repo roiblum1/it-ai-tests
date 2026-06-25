@@ -1,27 +1,40 @@
 roce-perf installed as release "{{ .Release.Name }}".
 
-Pods (1-to-1 environments):
-{{- range .Values.pods }}
-  - {{ .name }}  (role={{ .role }}, node={{ .node }}, net={{ .network | default $.Values.network }}{{ with .label }}, env={{ . }}{{ end }})
-{{- end }}
+Pods (1-to-1 scenario; leaf vs spine = which nic each endpoint uses):
+{{- $t := .Values.topology }}
+{{- $s := .Values.scenario }}
+  - rdma-server        node={{ $s.server.node }}   nic={{ $s.server.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.server.node | replace "{nic}" $s.server.nic }}
+  - rdma-client-leaf   node={{ $s.sameLeaf.node }}   nic={{ $s.sameLeaf.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.sameLeaf.node | replace "{nic}" $s.sameLeaf.nic }}   (env=same-leaf)
+  - rdma-client-spine  node={{ $s.spine.node }}   nic={{ $s.spine.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.spine.node | replace "{nic}" $s.spine.nic }}   (env=spine-crossing, crosses the spine)
 
+Each nic also derives its device-plugin resource via "{{ $t.resourcePattern }}".
 Benchmark matrix (toggle in values.benchmarks): read/write BW (-D,-s), write/read/send Lat (-U).
+Pods run {{ if .Values.privileged }}privileged{{ else }}with IPC_LOCK only{{ end }} (privileged makes in-pod ping/traceroute work under any SCC).
 {{- if .Values.gpudirect.enabled }}
 GPUDirect: ON (--use_cuda={{ .Values.gpudirect.gpuIndex }}) — matrix re-runs into the gpudirect/ subtree.
 {{- end }}
 {{- if not .Values.results.pvcName }}
 
 WARNING: results.pvcName is empty -> each pod writes to its own emptyDir. Set an
-RWX PVC so the report Job can read every environment's run dir.
+RWX PVC so the report can read every environment's run dir.
 {{- end }}
 
-1) Find the server's RoCE-network IP (clients need it as <server_ip>):
-   oc get pod rdma-server -o jsonpath='{.metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}' | \
-     jq -r '.[] | select(.name|test("roce")) | .ips[0]'
+Easiest path -- drive everything from your machine (chart already installed):
 
-2) Run the matrix from each client (same-leaf vs spine-crossing):
-   oc exec -it rdma-client-leaf  -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client mlx5_0 <server_ip> same-leaf
-   oc exec -it rdma-client-spine -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client mlx5_0 <server_ip> spine-crossing
+   ../run_suite.sh -n {{ .Release.Namespace }} --report
+
+   It waits for the pods, auto-discovers the server RoCE IP (ip -br a), runs both
+   clients (same-leaf + spine-crossing), then builds report.html and copies it to
+   ./report locally.
+
+Manual equivalent, if you prefer step by step:
+
+1) Get the server's RoCE IP:
+   oc exec -n {{ .Release.Namespace }} rdma-server -- ip -br -4 addr show   # take the net1 (Multus VF) address
+
+2) Run the matrix from each client:
+   oc exec -n {{ .Release.Namespace }} rdma-client-leaf  -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client auto <server_ip> same-leaf
+   oc exec -n {{ .Release.Namespace }} rdma-client-spine -- bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} client auto <server_ip> spine-crossing
    -> each writes {{ .Values.results.mountPath }}/<env>-<ts>/ {setup.json, bw/*.csv, lat/*.unsorted.txt + *.json}
 
 3) Generate comparison graphs + report.html:
@@ -29,14 +42,15 @@ RWX PVC so the report Job can read every environment's run dir.
    The report Job ran on install/upgrade; output is at {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html
    Re-run after new results:  oc delete job {{ include "roce-perf.fullname" . }}-report && helm upgrade {{ .Release.Name }} <chart>
 {{- else }}
-   Enable the in-cluster plot Job:  helm upgrade {{ .Release.Name }} <chart> --set report.enabled=true --set results.pvcName=<rwx-pvc>
-   -> writes {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html (latency CDFs, BW bars, setup table)
+   oc exec -n {{ .Release.Namespace }} rdma-server -- python3 {{ .Values.script.mountPath }}/plot_report.py {{ .Values.results.mountPath }} {{ .Values.report.outputSubdir }}
+   oc cp {{ .Release.Namespace }}/rdma-server:{{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }} ./report
+   (or enable the in-cluster Job: helm upgrade {{ .Release.Name }} <chart> --set report.enabled=true --set results.pvcName=<rwx-pvc>)
 {{- end }}
 
 {{- if .Values.nccl.enabled }}
 
 NCCL one-HCA-vs-all (1.7): requires sshd up on BOTH pods + key auth between them.
-   oc exec -it rdma-client-leaf -- bash {{ .Values.script.mountPath }}/nccl_one_vs_many.sh <peer_pod_ip> nccl-2pods
+   oc exec -n {{ .Release.Namespace }} rdma-client-leaf -- bash {{ .Values.script.mountPath }}/nccl_one_vs_many.sh <peer_pod_ip> nccl-2pods
 {{- end }}
 
 Deferred: env 2.3 many-to-many (mesh.enabled) and 2.4 tail-latency-under-load.

@@ -3,7 +3,12 @@
     "allow": [
       "Bash(rtk ls *)",
       "Bash(rtk helm *)",
-      "Bash(rtk read *)"
+      "Bash(rtk read *)",
+      "Bash(rtk find *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(rtk git *)",
+      "Bash(git mv *)",
+      "Bash(grep -iE 'DS_Store|__pycache__|\\\\.pyc$|\\\\.zip$|\\\\.tgz$')"
     ]
   }
 }

@@ -86,7 +86,7 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
 
 {{/*
 Renders the container block shared by every pod.
-Call with a dict: {"ctx": $root, "device": <dev>, "command": <list-as-string>}
+Call with a dict: {"ctx": $root, "resource": <device-plugin resource>, "command": <list-as-string>}
 */}}
 {{- define "roce-perf.container" -}}
 - name: rdma
@@ -97,16 +97,19 @@ Call with a dict: {"ctx": $root, "device": <dev>, "command": <list-as-string>}
   env:
     {{- include "roce-perf.env" .ctx | nindent 4 }}
   securityContext:
+    {{- if .ctx.Values.privileged }}
+    privileged: true
+    {{- end }}
     capabilities:
       add: {{ if .ctx.Values.ipcLock }}["IPC_LOCK"]{{ else }}[]{{ end }}
   resources:
     limits:
-      {{ .ctx.Values.rdmaResourceName | quote }}: "1"
+      {{ .resource | quote }}: "1"
       {{- if .ctx.Values.gpudirect.enabled }}
       nvidia.com/gpu: "1"
       {{- end }}
     requests:
-      {{ .ctx.Values.rdmaResourceName | quote }}: "1"
+      {{ .resource | quote }}: "1"
       {{- if .ctx.Values.gpudirect.enabled }}
       nvidia.com/gpu: "1"
       {{- end }}

@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Helm
+*.tgz
+RoCE-tests-chart/roce-perf/charts/
+RoCE-tests-chart/roce-perf/Chart.lock
+
+# Benchmark / driver output (run_suite.sh --report copies here)
+/report/
+RoCE-tests-chart/report/
+
+# Large artifacts — keep these out of the repo
+*.zip
+
+# Claude Code local (per-user) settings — settings.json is shared, .local is not
+.claude/settings.local.json

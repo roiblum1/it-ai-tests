@@ -1,14 +1,23 @@
 {{- $root := . -}}
-{{- range .Values.pods }}
-{{- $dev := .device | default $root.Values.defaultDevice -}}
-{{- $script := printf "%s/%s" $root.Values.script.mountPath $root.Values.script.fileName -}}
+{{- $s := .Values.scenario -}}
+{{- $script := printf "%s/%s" .Values.script.mountPath .Values.script.fileName -}}
+{{- $device := .Values.topology.device -}}
+{{/*
+  Three pods make up a 1-to-1 run. The leaf vs spine difference is just which nic
+  each client sits on (see values.scenario). NAD + device-plugin resource are
+  derived from each pod's (node, nic) via the topology patterns.
+*/}}
+{{- $pods := list
+    (dict "name" "rdma-server"       "role" "server" "node" $s.server.node   "nic" $s.server.nic   "label" ""               "autostart" true)
+    (dict "name" "rdma-client-leaf"  "role" "client" "node" $s.sameLeaf.node "nic" $s.sameLeaf.nic "label" "same-leaf"      "autostart" false)
+    (dict "name" "rdma-client-spine" "role" "client" "node" $s.spine.node    "nic" $s.spine.nic    "label" "spine-crossing" "autostart" false)
+-}}
+{{- range $pods }}
+{{- $nad := $root.Values.topology.nadPattern | replace "{node}" .node | replace "{nic}" .nic -}}
+{{- $res := $root.Values.topology.resourcePattern | replace "{nic}" .nic -}}
 {{- $cmd := list "sleep" "infinity" -}}
 {{- if .autostart -}}
-  {{- if eq .role "server" -}}
-    {{- $cmd = list "bash" $script "server" $dev -}}
-  {{- else -}}
-    {{- $cmd = list "bash" $script "client" $dev .target (.label | default .name) -}}
-  {{- end -}}
+  {{- $cmd = list "bash" $script "server" $device -}}
 {{- end }}
 ---
 apiVersion: v1
@@ -22,13 +31,13 @@ metadata:
     roce-perf/path: {{ . }}
     {{- end }}
   annotations:
-    k8s.v1.cni.cncf.io/networks: {{ .network | default $root.Values.network | quote }}
+    k8s.v1.cni.cncf.io/networks: {{ $nad | quote }}
 spec:
   restartPolicy: Never
   nodeSelector:
     kubernetes.io/hostname: {{ .node }}
   containers:
-    {{- include "roce-perf.container" (dict "ctx" $root "device" $dev "command" (toJson $cmd)) | nindent 4 }}
+    {{- include "roce-perf.container" (dict "ctx" $root "resource" $res "command" (toJson $cmd)) | nindent 4 }}
   volumes:
     {{- include "roce-perf.volumes" $root | nindent 4 }}
 {{- end }}

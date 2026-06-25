@@ -1,10 +1,10 @@
 {{- if .Values.mesh.enabled -}}
 {{- $root := . -}}
 {{- $m := .Values.mesh -}}
-{{- $dev := $m.device | default $root.Values.defaultDevice -}}
 {{- $script := printf "%s/%s" $root.Values.script.mountPath $root.Values.script.fileName -}}
 {{- range $node := $m.nodes }}
 {{- range $i := until (int $m.railsPerNode) }}
+{{- $res := $root.Values.topology.resourcePattern | replace "{nic}" (printf "rail%d" (int $i)) }}
 ---
 apiVersion: v1
 kind: Pod
@@ -22,7 +22,7 @@ spec:
   nodeSelector:
     kubernetes.io/hostname: {{ $node }}
   containers:
-    {{- include "roce-perf.container" (dict "ctx" $root "device" $dev "command" (toJson (list "sleep" "infinity"))) | nindent 4 }}
+    {{- include "roce-perf.container" (dict "ctx" $root "resource" $res "command" (toJson (list "sleep" "infinity"))) | nindent 4 }}
   volumes:
     {{- include "roce-perf.volumes" $root | nindent 4 }}
 {{- end }}
