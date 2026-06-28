@@ -24,8 +24,9 @@ ipcLock: true
 #   device-plugin rsrc = resourcePattern with {nic}        substituted
 # -----------------------------------------------------------------------------
 topology:
-  nadPattern: "{node}-{nic}"                            # e.g. worker-1-ens192
-  resourcePattern: "openshift.io/rdma_resource_{nic}"   # e.g. openshift.io/rdma_resource_ens192
+  # {node} is the k8s hostname (e.g. h200-3 = <server-type>-<number>), {nic} the rail.
+  nadPattern: "roce-{node}-{nic}"                       # e.g. roce-h200-3-ens32
+  resourcePattern: "openshift.io/rdma_resource_{nic}"   # e.g. openshift.io/rdma_resource_ens32
   device: mlx5_0                                        # in-pod RDMA device (one VF per pod); "auto" detects it
 
 # Common fabric parameter shared by all perftest invocations.

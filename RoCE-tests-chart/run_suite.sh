@@ -95,6 +95,17 @@ done
 # 4. Optional: generate the report inside a pod and copy it back locally.
 # ----------------------------------------------------------------------------
 if [ "$MAKE_REPORT" = true ]; then
+  # The report aggregates EVERY pod's run dirs, so all pods must share one
+  # ReadWriteMany PVC. Without results.pvcName each pod uses its own emptyDir and
+  # the server (where the report runs) sees nothing.
+  runs=$(oc_exec "$SERVER_POD" "ls $RESULTS_DIR/*/setup.json 2>/dev/null | wc -l" | tr -d '[:space:]')
+  if [ "${runs:-0}" -eq 0 ]; then
+    echo "ERROR: $SERVER_POD sees no run directories under $RESULTS_DIR."
+    echo "  The clients ran, but their results are in per-pod emptyDirs the server"
+    echo "  can't read. Set results.pvcName to a ReadWriteMany (RWX) PVC so all pods"
+    echo "  share $RESULTS_DIR, reinstall the chart, and re-run."
+    exit 1
+  fi
   log "Generating report on $SERVER_POD..."
   oc_exec "$SERVER_POD" "python3 $PLOT_PATH $RESULTS_DIR report"
   # kubectl/oc cp creates OUT_DIR from the source dir's contents (parent must exist).
