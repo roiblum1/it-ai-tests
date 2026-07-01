@@ -108,8 +108,12 @@ nccl:
     end: "128M"                     # -e
     factor: "2"                     # -f
   gpusPerProc: 1                    # -g
-  hcaOne: mlx5_0                    # NCCL_IB_HCA for the "one port" run
-  hcaAll: "mlx5_0,mlx5_1,mlx5_2,mlx5_3,mlx5_4,mlx5_5,mlx5_6,mlx5_7"  # "many"
+  # "auto" -> the script gathers the pod's actual RDMA devices from
+  # /sys/class/infiniband (hcaOne = first, hcaAll = all comma-joined). Override
+  # with an explicit list if needed. NOTE: a single-VF benchmark pod only exposes
+  # one device; a real one-vs-many run needs a pod attached to all rails.
+  hcaOne: auto                      # NCCL_IB_HCA for the "one rail" run
+  hcaAll: auto                      # NCCL_IB_HCA for the "all rails" run
 
 # In-cluster plotting/report Job: reads results PVC, emits PNGs + report.html
 # under <results.mountPath>/report. Requires results.pvcName (RWX).

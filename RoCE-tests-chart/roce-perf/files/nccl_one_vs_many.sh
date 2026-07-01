@@ -23,8 +23,18 @@ RESULTS="${RESULTS:-/results}"
 COLLECTIVE="${NCCL_COLLECTIVE:-all_reduce_perf}"
 BEGIN="${NCCL_SIZE_BEGIN:-8}"; END="${NCCL_SIZE_END:-128M}"; FACTOR="${NCCL_SIZE_FACTOR:-2}"
 GPUS="${NCCL_GPUS_PER_PROC:-1}"
-HCA_ONE="${NCCL_HCA_ONE:-mlx5_0}"; HCA_ALL="${NCCL_HCA_ALL:-mlx5_0}"
 IMAGE="${IMAGE:-unknown}"
+
+# HCA list -- gather the pod's actual RDMA devices instead of hardcoding rails.
+# "all" = every device under /sys/class/infiniband (comma-joined for NCCL_IB_HCA);
+# "one" = the first. Set NCCL_HCA_ALL / NCCL_HCA_ONE to override (or "auto").
+# NOTE: a single-VF pod only exposes one device, so a real one-vs-many run needs a
+# pod attached to all rails.
+detect_hcas() { ls /sys/class/infiniband 2>/dev/null | sort | paste -sd, - ; }
+HCA_ALL="${NCCL_HCA_ALL:-auto}"; HCA_ONE="${NCCL_HCA_ONE:-auto}"
+if [ -z "$HCA_ALL" ] || [ "$HCA_ALL" = auto ]; then HCA_ALL="$(detect_hcas)"; fi
+if [ -z "$HCA_ONE" ] || [ "$HCA_ONE" = auto ]; then HCA_ONE="${HCA_ALL%%,*}"; fi
+[ -z "$HCA_ALL" ] && { echo "no RDMA devices found under /sys/class/infiniband"; exit 1; }
 
 # make sure the local launcher can ssh to the peer (peer must run sshd too)
 pgrep -x sshd >/dev/null 2>&1 || /usr/sbin/sshd 2>/dev/null || true
