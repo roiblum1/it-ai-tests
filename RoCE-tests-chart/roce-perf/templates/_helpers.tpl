@@ -132,6 +132,10 @@ Renders the volumes block shared by every pod.
 {{- if .Values.results.pvcName }}
   persistentVolumeClaim:
     claimName: {{ .Values.results.pvcName }}
+{{- else if .Values.results.hostPath }}
+  hostPath:
+    path: {{ .Values.results.hostPath | quote }}
+    type: DirectoryOrCreate
 {{- else }}
   emptyDir: {}
 {{- end }}

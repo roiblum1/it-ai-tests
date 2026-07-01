@@ -54,9 +54,9 @@ The equivalent manual `oc exec` steps are emitted by [templates/NOTES.txt](roce-
 
 ### Two axes meeting in one data layout
 - **Benchmark types** (what test): read/write BW, write/read/send latency, each optionally re-run over GPUDirect; plus NCCL. Defined in `values.benchmarks`, `values.gpudirect`, `values.nccl`.
-- **Environments** (where): `same-leaf` and `spine-crossing`, chosen by the `(node, nic)` each pod sits on in `values.scenario` (`server`/`sameLeaf`/`spine`). pods.yaml derives each pod's NAD (`topology.nadPattern`) and device-plugin resource (`topology.resourcePattern`) from that nic.
+- **Environments** (where): `same-leaf` and `spine-crossing`, chosen per endpoint in `values.scenario` (`server`/`sameLeaf`/`spine`), each with `node` (k8s hostname → scheduling), `nic` (→ resource via `topology.resourcePattern`), and `nad` (the NAD name; the node-token usually differs from the hostname, so it's explicit, falling back to `topology.nadPattern`).
 
-Both axes converge on a per-run directory written to the shared results PVC, which the report Job reads back:
+Both axes converge on a per-run directory written to each pod's node-local results dir (see Storage below), which the report reads back:
 ```
 /results/<env-label>-<timestamp>/
   setup.json                      # env, device, node, mtu, gpudirect, params, date  (the "setup summary")
@@ -74,15 +74,19 @@ Both axes converge on a per-run directory written to the shared results PVC, whi
 ### The runner ([roce_bench.sh](roce-perf/files/roce_bench.sh))
 Server and client both call `build_test_plan`, which deterministically assigns a **port per (test, size)** from the same env — so the two sides agree on ports with no negotiation. This is the key invariant: perftest requires the client's flags to **match** the listening server, and identical plan output guarantees it. `add_bw_test`/`add_lat_test` append `subtree|family|name|port|binary|size|flags|kind` rows; a second pass appends `--use_cuda` rows into the `gpudirect` subtree when enabled. Server backgrounds a `while true` listener per row; client runs each and writes BW CSV rows or latency `*.unsorted.txt` (+ `summarize_latency` → `.json`). The `<device>` arg may be `auto` (the default the chart passes) — `detect_rdma_device` then finds the pod's single VF under `/sys/class/infiniband`.
 
-### Report Job ([report-job.yaml](roce-perf/templates/report-job.yaml) + [plot_report.py](roce-perf/files/plot_report.py))
-Gated by `report.enabled`; **fails template rendering if `results.pvcName` is unset** (an emptyDir can't be shared across pods). Mounts the PVC, picks the latest run per env-label, and emits BW grouped bars, latency CDF overlays (sorted from the `-U` samples), a percentile table, GPUDirect sections, and an NCCL bar, into `report.html`.
+### Storage (`results`)
+`roce-perf.volumes` picks the backend by precedence: `results.pvcName` (shared PVC) → `results.hostPath` (node-local, persists; the default) → `emptyDir`. The 1-to-1 pods are on different nodes, so with hostPath/emptyDir each pod's results are node-local. `run_suite.sh --report` therefore **gathers** every client's run dirs into the server pod (streams a `tar` over `oc exec`) before plotting — no shared PVC needed. The in-cluster report Job has no gather step, so it still requires a shared (RWX) PVC.
+
+### Report ([report-job.yaml](roce-perf/templates/report-job.yaml) + [plot_report.py](roce-perf/files/plot_report.py))
+`plot_report.py` scans `<results>/<env>-<ts>/` (latest per env-label) and emits BW grouped bars, latency CDF overlays (sorted from the `-U` samples), a percentile table, GPUDirect sections, and an NCCL bar, into `report.html`. The usual path is `run_suite.sh --report` (gathers, runs the plotter on the server, copies the report out). The in-cluster Job alternative is gated by `report.enabled` and **fails template rendering if `results.pvcName` is unset**.
 
 ### Shared template plumbing
-[_helpers.tpl](roce-perf/templates/_helpers.tpl) holds `roce-perf.env` (the params block), `roce-perf.container` (image, `command` as a JSON list, `privileged` + `IPC_LOCK`, a **per-pod** `<resource>: "1"` request/limit passed in via the call dict, **and `nvidia.com/gpu: "1"` when `gpudirect.enabled`**), and `roce-perf.volumes` (the `-scripts` ConfigMap at mode `0555` + results PVC/emptyDir). Change pod shape here, not in each template. [pods.yaml](roce-perf/templates/pods.yaml) builds the 3-pod list from `values.scenario` and derives each pod's NAD + resource before calling the helper. [configmap.yaml](roce-perf/templates/configmap.yaml) globs **all** of `files/` via `.Files.Glob`, so adding a script there auto-mounts it under `script.mountPath` (`/opt/roce`). Note `run_suite.sh` lives at the chart-repo root, **not** under `files/` — it runs on your laptop, not in the pods.
+[_helpers.tpl](roce-perf/templates/_helpers.tpl) holds `roce-perf.env` (the params block), `roce-perf.container` (image, `command` as a JSON list, `privileged` + `IPC_LOCK`, a **per-pod** `<resource>: "1"` request/limit passed in via the call dict, **and `nvidia.com/gpu: "1"` when `gpudirect.enabled`**), and `roce-perf.volumes` (the `-scripts` ConfigMap at mode `0555` + results PVC/hostPath/emptyDir). Change pod shape here, not in each template. [pods.yaml](roce-perf/templates/pods.yaml) builds the 3-pod list from `values.scenario`, resolving each pod's NAD (explicit `nad` or `nadPattern`) + resource before calling the helper. [configmap.yaml](roce-perf/templates/configmap.yaml) globs **all** of `files/` via `.Files.Glob`, so adding a script there auto-mounts it under `script.mountPath` (`/opt/roce`). Note `run_suite.sh` lives at the chart-repo root, **not** under `files/` — it runs on your laptop, not in the pods.
 
 ### Conventions
 - **One VF per pod**; the device-plugin resource is **derived per pod from the nic** via `topology.resourcePattern` (e.g. `openshift.io/rdma_resource_ens192`), not a single global value. `ipcLock: true` adds `IPC_LOCK`; `privileged: true` (default) makes in-pod `ping`/`traceroute` work under any SCC.
-- **Topology = `(node, nic)`**: `values.scenario.{server,sameLeaf,spine}` pick the nic for each endpoint; same nic family ⇒ same leaf, a nic on the other leaf ⇒ spine-crossing. NAD = `<node>-<nic>`.
+- **Topology = `(node, nic, nad)`** per endpoint in `values.scenario.{server,sameLeaf,spine}`: same nic/leaf ⇒ same-leaf, a nic on the other leaf ⇒ spine-crossing. `nad` is explicit (its node-token usually differs from the k8s hostname), falling back to `nadPattern`.
+- **Results are node-local by default** (`results.hostPath`); the report is built by `run_suite.sh --report`, which gathers across nodes (see Storage). Only the in-cluster Job needs an RWX PVC.
 - **GPUDirect/NCCL need the CUDA image + a GPU**; enabling `gpudirect` adds a `nvidia.com/gpu` request to every pod.
 
 ## Deferred / not yet built

@@ -24,7 +24,9 @@ ipcLock: true
 #   device-plugin rsrc = resourcePattern with {nic}        substituted
 # -----------------------------------------------------------------------------
 topology:
-  # {node} is the k8s hostname (e.g. h200-3 = <server-type>-<number>), {nic} the rail.
+  # Fallback NAD pattern, used only when a scenario endpoint omits its own `nad`.
+  # ({node}/{nic} substituted; many fabrics need an explicit per-endpoint nad
+  # because the NAD's node-token differs from the k8s hostname.)
   nadPattern: "roce-{node}-{nic}"                       # e.g. roce-h200-3-ens32
   resourcePattern: "openshift.io/rdma_resource_{nic}"   # e.g. openshift.io/rdma_resource_ens32
   device: mlx5_0                                        # in-pod RDMA device (one VF per pod); "auto" detects it
@@ -36,12 +38,18 @@ script:
   fileName: roce_bench.sh           # main runner, must exist under files/
   mountPath: /opt/roce
 
-# Shared results location. The report Job reads EVERY pod's run dirs from here,
-# so for graphs this should be an RWX PVC. Without it each pod keeps results in
-# its own emptyDir (usable for a single-pod manual run, not for the report).
+# Where each pod stores its run dirs. The 1-to-1 pods land on different nodes:
+#   hostPath (default): a node-local directory that persists after the pod exits
+#   pvcName           : a shared volume (an RWX PVC is the only backend all pods
+#                       see at once); takes precedence over hostPath when set
+#   neither set       : emptyDir (per-pod, deleted with the pod)
+# run_suite.sh --report gathers each client's run dirs into the server pod before
+# building the report, so hostPath/emptyDir work without a shared PVC. (The
+# in-cluster report Job has no gather step and still needs a shared PVC.)
 results:
-  pvcName: ""
   mountPath: /results
+  hostPath: /var/lib/roce-perf      # node-local, persistent; set "" for emptyDir
+  pvcName: ""                       # an RWX PVC shared by all pods (overrides hostPath)
 
 # -----------------------------------------------------------------------------
 # Phase-1 benchmark matrix. Each test is rendered into the pod environment and
@@ -111,15 +119,25 @@ report:
 #   spine-crossing (2.2): client on a rail that lands on a DIFFERENT leaf
 # The chart stamps three pods (rdma-server, rdma-client-leaf, rdma-client-spine);
 # the server autostarts its listeners, the clients idle until run_suite.sh drives
-# them. Each (node, nic) below is turned into a NAD + resource via topology above.
+# them.
+#
+# Each endpoint sets:
+#   node : k8s hostname for scheduling (kubernetes.io/hostname)
+#   nic  : the rail -> device-plugin resource via topology.resourcePattern
+#   nad  : the NetworkAttachmentDefinition name. The NAD's node-token usually
+#          differs from the hostname (host ocp4-...-h200-03 -> NAD roce-h200-3-...),
+#          so set it explicitly. Omit it to fall back to topology.nadPattern.
 # -----------------------------------------------------------------------------
 scenario:
   server:
-    node: worker-1
-    nic: ens192               # leaf 1
-  sameLeaf:
-    node: worker-2
-    nic: ens192               # leaf 1  -> same leaf as server, no spine hop
-  spine:
-    node: worker-2
-    nic: ens196               # leaf 2  -> crosses the spine
+    node: ocp4-hypershift-nova-h200-03
+    nic: ens32
+    nad: roce-h200-3-ens32
+  sameLeaf:                          # peer host on the SAME rail/leaf (no spine)
+    node: ocp4-hypershift-nova-h200-04
+    nic: ens32
+    nad: roce-h200-4-ens32
+  spine:                             # rail on a DIFFERENT leaf -> crosses the spine
+    node: ocp4-hypershift-nova-h200-04
+    nic: ens36
+    nad: roce-h200-4-ens36

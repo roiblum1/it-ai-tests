@@ -4,16 +4,16 @@
 {{- $device := .Values.topology.device -}}
 {{/*
   Three pods make up a 1-to-1 run. The leaf vs spine difference is just which nic
-  each client sits on (see values.scenario). NAD + device-plugin resource are
-  derived from each pod's (node, nic) via the topology patterns.
+  each client sits on (see values.scenario). The device-plugin resource is derived
+  from the nic; the NAD is each endpoint's explicit .nad, or topology.nadPattern.
 */}}
 {{- $pods := list
-    (dict "name" "rdma-server"       "role" "server" "node" $s.server.node   "nic" $s.server.nic   "label" ""               "autostart" true)
-    (dict "name" "rdma-client-leaf"  "role" "client" "node" $s.sameLeaf.node "nic" $s.sameLeaf.nic "label" "same-leaf"      "autostart" false)
-    (dict "name" "rdma-client-spine" "role" "client" "node" $s.spine.node    "nic" $s.spine.nic    "label" "spine-crossing" "autostart" false)
+    (dict "name" "rdma-server"       "role" "server" "node" $s.server.node   "nic" $s.server.nic   "nad" $s.server.nad   "label" ""               "autostart" true)
+    (dict "name" "rdma-client-leaf"  "role" "client" "node" $s.sameLeaf.node "nic" $s.sameLeaf.nic "nad" $s.sameLeaf.nad "label" "same-leaf"      "autostart" false)
+    (dict "name" "rdma-client-spine" "role" "client" "node" $s.spine.node    "nic" $s.spine.nic    "nad" $s.spine.nad    "label" "spine-crossing" "autostart" false)
 -}}
 {{- range $pods }}
-{{- $nad := $root.Values.topology.nadPattern | replace "{node}" .node | replace "{nic}" .nic -}}
+{{- $nad := .nad | default ($root.Values.topology.nadPattern | replace "{node}" .node | replace "{nic}" .nic) -}}
 {{- $res := $root.Values.topology.resourcePattern | replace "{nic}" .nic -}}
 {{- $cmd := list "sleep" "infinity" -}}
 {{- if .autostart -}}

@@ -25,47 +25,47 @@ Each node has 8 RoCE rails (one NIC per GPU). Every rail is its own SR-IOV
 device-plugin resource and its own Multus NAD; the first 4 rails are on leaf 1,
 the next 4 on leaf 2. So **leaf vs spine is just which nic each endpoint uses**.
 
-You describe the run as a `(node, nic)` per endpoint in
-[roce-perf/values.yaml](roce-perf/values.yaml); the chart derives each pod's NAD
-and resource from the nic:
+You describe each endpoint in [roce-perf/values.yaml](roce-perf/values.yaml) with a
+`node` (k8s hostname, for scheduling), a `nic` (the rail → device-plugin resource),
+and a `nad` (the NetworkAttachmentDefinition). The NAD's node-token usually differs
+from the hostname (host `ocp4-…-h200-03` → NAD `roce-h200-3-ens32`), so set it
+explicitly; omit it to fall back to `topology.nadPattern`:
 
 ```yaml
 topology:
-  nadPattern: "{node}-{nic}"                          # -> worker-1-ens192
-  resourcePattern: "openshift.io/rdma_resource_{nic}" # -> openshift.io/rdma_resource_ens192
+  nadPattern: "roce-{node}-{nic}"                     # fallback when an endpoint omits nad
+  resourcePattern: "openshift.io/rdma_resource_{nic}" # -> openshift.io/rdma_resource_ens32
   device: mlx5_0                                       # in-pod device; "auto" detects the VF
 
 scenario:
-  server:   { node: worker-1, nic: ens192 }   # leaf 1
-  sameLeaf: { node: worker-2, nic: ens192 }   # leaf 1  -> no spine
-  spine:    { node: worker-2, nic: ens196 }   # leaf 2  -> crosses the spine
+  server:   { node: ocp4-...-h200-03, nic: ens32, nad: roce-h200-3-ens32 }  # leaf 1
+  sameLeaf: { node: ocp4-...-h200-04, nic: ens32, nad: roce-h200-4-ens32 }  # leaf 1 -> no spine
+  spine:    { node: ocp4-...-h200-04, nic: ens36, nad: roce-h200-4-ens36 }  # leaf 2 -> spine
 ```
 
 ## Prerequisites
 
 - OpenShift with the **SR-IOV RDMA** operator configured so each rail exposes a
-  per-nic resource (`openshift.io/rdma_resource_<nic>`) and a per-(node,nic) NAD
-  (`<node>-<nic>`).
+  per-nic resource (`openshift.io/rdma_resource_<nic>`) and a NAD per (node, rail).
 - The pods run **privileged** (so in-pod `ping`/`traceroute` work). Grant it:
   ```bash
   oc adm policy add-scc-to-user privileged -z default -n <ns>
   ```
 - The shared CUDA benchmark image built/pushed from [Dockerfile](Dockerfile) (see
   the repo-level [README](../README.md)). Set `image:` in values to your registry.
-- For graphs across both environments: an **RWX PVC** (`results.pvcName`) so every
-  pod's results are readable from one place.
+- Results storage — **node-local `hostPath`** by default (`results.hostPath`,
+  persists on the node). No shared PVC needed: `run_suite.sh --report` gathers each
+  client's run dirs into the server before plotting. (Only the optional in-cluster
+  report Job needs an RWX `results.pvcName`.)
 - For GPUDirect / NCCL: a **GPU** on the nodes (`gpudirect.enabled` adds a
   `nvidia.com/gpu` request).
 
 ## Quickstart
 
 ```bash
-# 1. install the chart with your topology + an RWX results PVC
-helm install demo roce-perf -n <ns> \
-  --set results.pvcName=<rwx-pvc> \
-  --set scenario.server.node=worker-1   --set scenario.server.nic=ens192 \
-  --set scenario.sameLeaf.node=worker-2 --set scenario.sameLeaf.nic=ens192 \
-  --set scenario.spine.node=worker-2    --set scenario.spine.nic=ens196
+# 1. set your topology in values.yaml (scenario.{server,sameLeaf,spine}.{node,nic,nad}
+#    and results.hostPath), then install:
+helm install demo roce-perf -n <ns>
 
 # 2. allow privileged pods (once per namespace)
 oc adm policy add-scc-to-user privileged -z default -n <ns>
@@ -94,7 +94,8 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 
 ## Output
 
-Each client writes a per-run directory to the results PVC:
+Each client writes a per-run directory to its node-local results dir (`run_suite.sh
+--report` gathers both into the server before plotting):
 
 ```
 /results/<env-label>-<timestamp>/      # env-label = same-leaf | spine-crossing
@@ -117,7 +118,9 @@ print the exact `oc exec` steps: get the server IP, run `roce_bench.sh client au
 - **`ping: Operation not permitted`** — the pod isn't privileged. Grant the
   `privileged` SCC (above); RoCE itself doesn't use ICMP, so RDMA tests still run.
 - **Pods stuck `Pending`** — the requested `openshift.io/rdma_resource_<nic>` isn't
-  available on the chosen node, or the NAD `<node>-<nic>` doesn't exist. Check the
-  SR-IOV policy/NADs and your `scenario` nics.
-- **No graphs** — `results.pvcName` must be a single **RWX** PVC so the report can
-  read every pod's run dir; an emptyDir can't be shared.
+  available on the chosen node, or the `nad` doesn't exist. Check the SR-IOV
+  policy/NADs and your `scenario` `nic`/`nad` values.
+- **`no run directories with setup.json`** — generate the report with
+  `run_suite.sh --report` (it gathers both clients' results into the server first).
+  Running `plot_report.py` directly only sees one node's results unless
+  `results.pvcName` is a shared RWX PVC.

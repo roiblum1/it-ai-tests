@@ -3,9 +3,9 @@ roce-perf installed as release "{{ .Release.Name }}".
 Pods (1-to-1 scenario; leaf vs spine = which nic each endpoint uses):
 {{- $t := .Values.topology }}
 {{- $s := .Values.scenario }}
-  - rdma-server        node={{ $s.server.node }}   nic={{ $s.server.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.server.node | replace "{nic}" $s.server.nic }}
-  - rdma-client-leaf   node={{ $s.sameLeaf.node }}   nic={{ $s.sameLeaf.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.sameLeaf.node | replace "{nic}" $s.sameLeaf.nic }}   (env=same-leaf)
-  - rdma-client-spine  node={{ $s.spine.node }}   nic={{ $s.spine.nic }}   nad={{ $t.nadPattern | replace "{node}" $s.spine.node | replace "{nic}" $s.spine.nic }}   (env=spine-crossing, crosses the spine)
+  - rdma-server        node={{ $s.server.node }}   nic={{ $s.server.nic }}   nad={{ $s.server.nad | default ($t.nadPattern | replace "{node}" $s.server.node | replace "{nic}" $s.server.nic) }}
+  - rdma-client-leaf   node={{ $s.sameLeaf.node }}   nic={{ $s.sameLeaf.nic }}   nad={{ $s.sameLeaf.nad | default ($t.nadPattern | replace "{node}" $s.sameLeaf.node | replace "{nic}" $s.sameLeaf.nic) }}   (env=same-leaf)
+  - rdma-client-spine  node={{ $s.spine.node }}   nic={{ $s.spine.nic }}   nad={{ $s.spine.nad | default ($t.nadPattern | replace "{node}" $s.spine.node | replace "{nic}" $s.spine.nic) }}   (env=spine-crossing, crosses the spine)
 
 Each nic also derives its device-plugin resource via "{{ $t.resourcePattern }}".
 Benchmark matrix (toggle in values.benchmarks): read/write BW (-D,-s), write/read/send Lat (-U).
@@ -13,10 +13,17 @@ Pods run {{ if .Values.privileged }}privileged{{ else }}with IPC_LOCK only{{ end
 {{- if .Values.gpudirect.enabled }}
 GPUDirect: ON (--use_cuda={{ .Values.gpudirect.gpuIndex }}) — matrix re-runs into the gpudirect/ subtree.
 {{- end }}
-{{- if not .Values.results.pvcName }}
+{{- if .Values.results.pvcName }}
 
-WARNING: results.pvcName is empty -> each pod writes to its own emptyDir. Set an
-RWX PVC so the report can read every environment's run dir.
+Results: shared PVC {{ .Values.results.pvcName }} (all pods + the in-cluster Job see it).
+{{- else if .Values.results.hostPath }}
+
+Results: hostPath {{ .Values.results.hostPath }} on each node (persists after the pod
+exits). run_suite.sh --report gathers the clients' run dirs into the server first.
+{{- else }}
+
+Results: per-pod emptyDir (ephemeral). run_suite.sh --report gathers the clients'
+run dirs into the server first.
 {{- end }}
 
 Easiest path -- drive everything from your machine (chart already installed):
@@ -39,12 +46,12 @@ Manual equivalent, if you prefer step by step:
 
 3) Generate comparison graphs + report.html:
 {{- if .Values.report.enabled }}
-   The report Job ran on install/upgrade; output is at {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html
+   The report Job ran on install/upgrade (needs a shared PVC); output at {{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }}/report.html
    Re-run after new results:  oc delete job {{ include "roce-perf.fullname" . }}-report && helm upgrade {{ .Release.Name }} <chart>
 {{- else }}
-   oc exec -n {{ .Release.Namespace }} rdma-server -- python3 {{ .Values.script.mountPath }}/plot_report.py {{ .Values.results.mountPath }} {{ .Values.report.outputSubdir }}
-   oc cp {{ .Release.Namespace }}/rdma-server:{{ .Values.results.mountPath }}/{{ .Values.report.outputSubdir }} ./report
-   (or enable the in-cluster Job: helm upgrade {{ .Release.Name }} <chart> --set report.enabled=true --set results.pvcName=<rwx-pvc>)
+   Use run_suite.sh --report (above): it gathers BOTH clients' results into the
+   server, then plots. Direct plot_report.py only sees one node's results unless
+   results.pvcName is a shared RWX PVC.
 {{- end }}
 
 {{- if .Values.nccl.enabled }}

@@ -25,6 +25,7 @@ SERVER_POD="rdma-server"
 SCRIPT_PATH="/opt/roce/roce_bench.sh"
 PLOT_PATH="/opt/roce/plot_report.py"
 RESULTS_DIR="/results"
+REPORT_SUBDIR="report"
 
 # client pod  ->  env-label (tags the run directory)
 CLIENTS=(
@@ -92,26 +93,34 @@ for entry in "${CLIENTS[@]}"; do
 done
 
 # ----------------------------------------------------------------------------
-# 4. Optional: generate the report inside a pod and copy it back locally.
+# 4. Optional: build the combined report and copy it back locally.
+#
+# Each pod's results live in node-local storage (hostPath/emptyDir), and the
+# clients are on different nodes than the server, so we first GATHER every
+# client's run dirs into the server pod (stream a tar over `oc exec`), then run
+# the plotter there. With a shared PVC this gather is just a harmless no-op.
 # ----------------------------------------------------------------------------
 if [ "$MAKE_REPORT" = true ]; then
-  # The report aggregates EVERY pod's run dirs, so all pods must share one
-  # ReadWriteMany PVC. Without results.pvcName each pod uses its own emptyDir and
-  # the server (where the report runs) sees nothing.
+  for entry in "${CLIENTS[@]}"; do
+    pod="${entry%%:*}"
+    log "Gathering results from $pod -> $SERVER_POD ..."
+    oc exec -n "$NAMESPACE" "$pod" -- \
+      tar -C "$RESULTS_DIR" --exclude="./$REPORT_SUBDIR" -cf - . \
+      | oc exec -i -n "$NAMESPACE" "$SERVER_POD" -- tar -C "$RESULTS_DIR" -xf -
+  done
+
   runs=$(oc_exec "$SERVER_POD" "ls $RESULTS_DIR/*/setup.json 2>/dev/null | wc -l" | tr -d '[:space:]')
   if [ "${runs:-0}" -eq 0 ]; then
-    echo "ERROR: $SERVER_POD sees no run directories under $RESULTS_DIR."
-    echo "  The clients ran, but their results are in per-pod emptyDirs the server"
-    echo "  can't read. Set results.pvcName to a ReadWriteMany (RWX) PVC so all pods"
-    echo "  share $RESULTS_DIR, reinstall the chart, and re-run."
+    echo "ERROR: no run directories found after gathering. Did the clients run?"
     exit 1
   fi
+
   log "Generating report on $SERVER_POD..."
-  oc_exec "$SERVER_POD" "python3 $PLOT_PATH $RESULTS_DIR report"
+  oc_exec "$SERVER_POD" "python3 $PLOT_PATH $RESULTS_DIR $REPORT_SUBDIR"
   # kubectl/oc cp creates OUT_DIR from the source dir's contents (parent must exist).
   mkdir -p "$(dirname "$OUT_DIR")"
   log "Copying report to $OUT_DIR ..."
-  oc cp -n "$NAMESPACE" "$SERVER_POD:$RESULTS_DIR/report" "$OUT_DIR"
+  oc cp -n "$NAMESPACE" "$SERVER_POD:$RESULTS_DIR/$REPORT_SUBDIR" "$OUT_DIR"
   echo "Report at: $OUT_DIR/report.html"
 fi
 
