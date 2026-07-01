@@ -88,6 +88,7 @@ Server and client both call `build_test_plan`, which deterministically assigns a
 - **Topology = `(node, nic, nad, gpuIndex)`** per endpoint in `values.scenario.{server,sameLeaf,spine}`: same nic/leaf ⇒ same-leaf, a nic on the other leaf ⇒ spine-crossing. `nad` is explicit (its node-token usually differs from the k8s hostname), falling back to `nadPattern`. `gpuIndex` is the GPU paired with that rail (spine needs a different GPU than the leaf rails); it's rendered as a **per-pod** `GPU_INDEX` env by `roce-perf.container` (not the shared `roce-perf.env`), falling back to `gpudirect.gpuIndex`.
 - **Results are node-local by default** (`results.hostPath`); the report is built by `run_suite.sh --report`, which gathers across nodes (see Storage). Only the in-cluster Job needs an RWX PVC.
 - **GPUDirect/NCCL need the CUDA image + a GPU**; enabling `gpudirect` adds a `nvidia.com/gpu` request to every pod.
+- **NUMA pinning** (`numactl.enabled`, default on): the runner wraps perftest in `numactl --cpunodebind/--membind` for the rail's socket, read per-pod from the NIC's `/sys/.../numa_node` when `numactl.node: auto`. It's best-effort — pins only if the cores are bindable (needs `resources.{cpu,memory}` for Guaranteed QoS + topology manager), else warns and runs unpinned.
 
 ## Deferred / not yet built
 

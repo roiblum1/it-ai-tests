@@ -8,7 +8,8 @@
       "Bash(echo \"exit=$?\")",
       "Bash(rtk git *)",
       "Bash(git mv *)",
-      "Bash(grep -iE 'DS_Store|__pycache__|\\\\.pyc$|\\\\.zip$|\\\\.tgz$')"
+      "Bash(grep -iE 'DS_Store|__pycache__|\\\\.pyc$|\\\\.zip$|\\\\.tgz$')",
+      "Bash(grep -nE 'GPUDIRECT_SKIP=|CUDA_BIN_DIR=|^COMMON=|Auto-detected RDMA|\\\\$binary \\\\$COMMON' files/roce_bench.sh)"
     ]
   }
 }

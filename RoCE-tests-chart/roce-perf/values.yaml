@@ -34,6 +34,25 @@ topology:
 # Common fabric parameter shared by all perftest invocations.
 mtu: 4096
 
+# NUMA pinning. When enabled, each perftest run is wrapped in
+# `numactl --cpunodebind=N --membind=N` for its rail's socket. With node=auto the
+# runner reads the socket straight from the NIC's sysfs
+# (/sys/class/infiniband/<dev>/device/numa_node) -- exact hardware truth, per pod.
+# It pins only if those cores are actually bindable, otherwise it warns and runs
+# unpinned -- for a real bind the pod must get cores on that socket: set
+# resources.cpu/memory below (Guaranteed QoS) + kubelet topology manager
+# single-numa-node.
+numactl:
+  enabled: true
+  node: auto         # "auto" = detect from the NIC's numa_node; or a fixed node number
+
+# Optional CPU/memory reservation. Setting BOTH makes the pod Guaranteed QoS, which
+# (with the topology manager) is what lets NUMA pinning bind real cores. Empty =
+# BestEffort/Burstable and numactl stays best-effort.
+resources:
+  cpu: ""            # e.g. "16"
+  memory: ""         # e.g. "32Gi"
+
 script:
   fileName: roce_bench.sh           # main runner, must exist under files/
   mountPath: /opt/roce

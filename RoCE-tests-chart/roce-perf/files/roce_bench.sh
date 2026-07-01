@@ -24,6 +24,7 @@
 #   LAT_SEND_*   ib_send_lat   (1.5)
 #   GPUDIRECT_ENABLED=true     (1.6)  re-runs the whole matrix with --use_cuda
 #   GPUDIRECT_SKIP="send_lat"         tests to skip in the CUDA pass only (still on NIC)
+#   NUMACTL_ENABLED=true NUMA_NODE=auto   pin perftest to the rail's NUMA node (auto=sysfs)
 #
 # The client writes a structured run directory under $RESULTS that the report Job
 # (plot_report.py) reads back:
@@ -77,6 +78,9 @@ GPUDIRECT_ENABLED="${GPUDIRECT_ENABLED:-false}"
 GPU_INDEX="${GPU_INDEX:-0}"
 GPUDIRECT_SKIP="${GPUDIRECT_SKIP:-send_lat}"            # tests to skip in the CUDA pass only
 CUDA_BIN_DIR="${CUDA_BIN_DIR:-/opt/perftest-cuda/bin}"   # CUDA-built perftest, for --use_cuda
+
+NUMACTL_ENABLED="${NUMACTL_ENABLED:-false}"            # pin perftest to the rail's NUMA node
+NUMA_NODE="${NUMA_NODE:-auto}"                          # "auto" = read the NIC's sysfs numa_node
 
 # ----------------------------------------------------------------------------
 # Helpers
@@ -208,6 +212,25 @@ fi
 #   -R  use rdma_cm (routed RoCEv2)   -m  MTU   -F  skip the CPU-frequency check (pods)
 COMMON="-R -d $DEVICE -m $MTU -F"
 
+# NUMA pinning prefix: bind perftest to the socket local to this rail. With
+# NUMA_NODE=auto we read the NIC's own numa_node from sysfs (exact, per pod). We
+# pin only if those cores are actually bindable (needs Guaranteed QoS + the kubelet
+# topology manager); otherwise we warn and run unpinned so a run never fails on it.
+NUMACTL=""
+if [ "$NUMACTL_ENABLED" = true ]; then
+  numa="$NUMA_NODE"
+  { [ -z "$numa" ] || [ "$numa" = auto ]; } && \
+    numa="$(cat /sys/class/infiniband/"$DEVICE"/device/numa_node 2>/dev/null || true)"
+  if [ -n "$numa" ] && [ "$numa" -ge 0 ] 2>/dev/null \
+     && command -v numactl >/dev/null 2>&1 \
+     && numactl --cpunodebind="$numa" --membind="$numa" true 2>/dev/null; then
+    NUMACTL="numactl --cpunodebind=$numa --membind=$numa"
+    echo "NUMA pinning: node $numa (device $DEVICE)"
+  else
+    echo "WARN: NUMA pinning requested but node '${numa:-unknown}' not bindable; running unpinned"
+  fi
+fi
+
 # ----------------------------------- SERVER ---------------------------------
 if [ "$ROLE" = server ]; then
   build_test_plan
@@ -220,7 +243,7 @@ if [ "$ROLE" = server ]; then
     (
       while true; do
         # shellcheck disable=SC2086
-        $binary $COMMON -p "$port" -s "$size" $flags >/dev/null 2>&1
+        $NUMACTL $binary $COMMON -p "$port" -s "$size" $flags >/dev/null 2>&1
         sleep 1
       done
     ) &
@@ -276,7 +299,7 @@ EOF
     banner "${subtree:+[gpudirect] }$name  [$binary :$port size=$size]"
 
     # shellcheck disable=SC2086
-    output=$($binary $COMMON -p "$port" -s "$size" $flags "$SERVER_IP" 2>&1)
+    output=$($NUMACTL $binary $COMMON -p "$port" -s "$size" $flags "$SERVER_IP" 2>&1)
     echo "$output"
 
     if [ "$kind" = bw ]; then

@@ -92,6 +92,7 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 - `benchmarks.lat.{write,read,send}` — `enabled`, `iters` (`-n`), `size`, `unsorted` (`-U`)
 - `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda` (per-pod GPU is `scenario.*.gpuIndex`; `gpudirect.gpuIndex` is only the fallback). `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
 - `nccl.*` — one-HCA-vs-all (gated off by default; needs ssh between pods)
+- `numactl.{enabled,node}` — pin perftest to the rail's socket (`node: auto` reads the NIC's `numa_node` from sysfs per pod). For the bind to take real cores, set `resources.{cpu,memory}` (makes the pod Guaranteed QoS) + run the kubelet topology manager with `single-numa-node`; otherwise it warns and runs unpinned.
 - `report.enabled` — run the plot Job in-cluster instead of via `run_suite.sh --report`
 
 ## Output
