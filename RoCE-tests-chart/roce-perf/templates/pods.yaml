@@ -8,13 +8,16 @@
   from the nic; the NAD is each endpoint's explicit .nad, or topology.nadPattern.
 */}}
 {{- $pods := list
-    (dict "name" "rdma-server"       "role" "server" "node" $s.server.node   "nic" $s.server.nic   "nad" $s.server.nad   "label" ""               "autostart" true)
-    (dict "name" "rdma-client-leaf"  "role" "client" "node" $s.sameLeaf.node "nic" $s.sameLeaf.nic "nad" $s.sameLeaf.nad "label" "same-leaf"      "autostart" false)
-    (dict "name" "rdma-client-spine" "role" "client" "node" $s.spine.node    "nic" $s.spine.nic    "nad" $s.spine.nad    "label" "spine-crossing" "autostart" false)
+    (dict "name" "rdma-server"       "role" "server" "node" $s.server.node   "nic" $s.server.nic   "nad" $s.server.nad   "gpuIndex" $s.server.gpuIndex   "label" ""               "autostart" true)
+    (dict "name" "rdma-client-leaf"  "role" "client" "node" $s.sameLeaf.node "nic" $s.sameLeaf.nic "nad" $s.sameLeaf.nad "gpuIndex" $s.sameLeaf.gpuIndex "label" "same-leaf"      "autostart" false)
+    (dict "name" "rdma-client-spine" "role" "client" "node" $s.spine.node    "nic" $s.spine.nic    "nad" $s.spine.nad    "gpuIndex" $s.spine.gpuIndex   "label" "spine-crossing" "autostart" false)
 -}}
 {{- range $pods }}
 {{- $nad := .nad | default ($root.Values.topology.nadPattern | replace "{node}" .node | replace "{nic}" .nic) -}}
 {{- $res := $root.Values.topology.resourcePattern | replace "{nic}" .nic -}}
+{{- /* GPU paired with this pod's nic; fall back to gpudirect.gpuIndex only when unset (nil, not 0) */ -}}
+{{- $gpu := $root.Values.gpudirect.gpuIndex -}}
+{{- if not (kindIs "invalid" .gpuIndex) }}{{ $gpu = .gpuIndex }}{{ end -}}
 {{- $cmd := list "sleep" "infinity" -}}
 {{- if .autostart -}}
   {{- $cmd = list "bash" $script "server" $device -}}
@@ -37,7 +40,7 @@ spec:
   nodeSelector:
     kubernetes.io/hostname: {{ .node }}
   containers:
-    {{- include "roce-perf.container" (dict "ctx" $root "resource" $res "command" (toJson $cmd)) | nindent 4 }}
+    {{- include "roce-perf.container" (dict "ctx" $root "resource" $res "gpuIndex" $gpu "command" (toJson $cmd)) | nindent 4 }}
   volumes:
     {{- include "roce-perf.volumes" $root | nindent 4 }}
 {{- end }}

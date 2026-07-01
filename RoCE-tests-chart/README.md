@@ -27,9 +27,11 @@ the next 4 on leaf 2. So **leaf vs spine is just which nic each endpoint uses**.
 
 You describe each endpoint in [roce-perf/values.yaml](roce-perf/values.yaml) with a
 `node` (k8s hostname, for scheduling), a `nic` (the rail → device-plugin resource),
-and a `nad` (the NetworkAttachmentDefinition). The NAD's node-token usually differs
-from the hostname (host `ocp4-…-h200-03` → NAD `roce-h200-3-ens32`), so set it
-explicitly; omit it to fall back to `topology.nadPattern`:
+a `nad` (the NetworkAttachmentDefinition), and — for GPUDirect — a `gpuIndex` (the
+GPU **paired with that rail**, so the spine rail uses a different GPU than the leaf
+rails; check `nvidia-smi topo -m`). The NAD's node-token usually differs from the
+hostname (host `ocp4-…-h200-03` → NAD `roce-h200-3-ens32`), so set it explicitly;
+omit `nad`/`gpuIndex` to fall back to `topology.nadPattern`/`gpudirect.gpuIndex`:
 
 ```yaml
 topology:
@@ -38,9 +40,9 @@ topology:
   device: mlx5_0                                       # in-pod device; "auto" detects the VF
 
 scenario:
-  server:   { node: ocp4-...-h200-03, nic: ens32, nad: roce-h200-3-ens32 }  # leaf 1
-  sameLeaf: { node: ocp4-...-h200-04, nic: ens32, nad: roce-h200-4-ens32 }  # leaf 1 -> no spine
-  spine:    { node: ocp4-...-h200-04, nic: ens36, nad: roce-h200-4-ens36 }  # leaf 2 -> spine
+  server:   { node: ocp4-...-h200-03, nic: ens32, nad: roce-h200-3-ens32, gpuIndex: 0 }  # leaf 1
+  sameLeaf: { node: ocp4-...-h200-04, nic: ens32, nad: roce-h200-4-ens32, gpuIndex: 0 }  # leaf 1 -> no spine
+  spine:    { node: ocp4-...-h200-04, nic: ens36, nad: roce-h200-4-ens36, gpuIndex: 4 }  # leaf 2 -> spine
 ```
 
 ## Prerequisites
@@ -88,7 +90,7 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 
 - `benchmarks.bw.{read,write}` — `enabled`, `duration` (`-D`), `sizes` (`-s`), `qps` (`-q`)
 - `benchmarks.lat.{write,read,send}` — `enabled`, `iters` (`-n`), `size`, `unsorted` (`-U`)
-- `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda`; `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
+- `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda` (per-pod GPU is `scenario.*.gpuIndex`; `gpudirect.gpuIndex` is only the fallback). `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
 - `nccl.*` — one-HCA-vs-all (gated off by default; needs ssh between pods)
 - `report.enabled` — run the plot Job in-cluster instead of via `run_suite.sh --report`
 

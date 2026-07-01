@@ -85,7 +85,7 @@ Server and client both call `build_test_plan`, which deterministically assigns a
 
 ### Conventions
 - **One VF per pod**; the device-plugin resource is **derived per pod from the nic** via `topology.resourcePattern` (e.g. `openshift.io/rdma_resource_ens192`), not a single global value. `ipcLock: true` adds `IPC_LOCK`; `privileged: true` (default) makes in-pod `ping`/`traceroute` work under any SCC.
-- **Topology = `(node, nic, nad)`** per endpoint in `values.scenario.{server,sameLeaf,spine}`: same nic/leaf ⇒ same-leaf, a nic on the other leaf ⇒ spine-crossing. `nad` is explicit (its node-token usually differs from the k8s hostname), falling back to `nadPattern`.
+- **Topology = `(node, nic, nad, gpuIndex)`** per endpoint in `values.scenario.{server,sameLeaf,spine}`: same nic/leaf ⇒ same-leaf, a nic on the other leaf ⇒ spine-crossing. `nad` is explicit (its node-token usually differs from the k8s hostname), falling back to `nadPattern`. `gpuIndex` is the GPU paired with that rail (spine needs a different GPU than the leaf rails); it's rendered as a **per-pod** `GPU_INDEX` env by `roce-perf.container` (not the shared `roce-perf.env`), falling back to `gpudirect.gpuIndex`.
 - **Results are node-local by default** (`results.hostPath`); the report is built by `run_suite.sh --report`, which gathers across nodes (see Storage). Only the in-cluster Job needs an RWX PVC.
 - **GPUDirect/NCCL need the CUDA image + a GPU**; enabling `gpudirect` adds a `nvidia.com/gpu` request to every pod.
 

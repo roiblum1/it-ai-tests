@@ -91,7 +91,8 @@ benchmarks:
 # Requires the CUDA image and a GPU on the node (adds nvidia.com/gpu request).
 gpudirect:
   enabled: false
-  gpuIndex: 0
+  gpuIndex: 0                        # fallback GPU when a scenario endpoint omits gpuIndex
+                                     # (real per-rail GPU is set in scenario.*.gpuIndex)
   # Tests to SKIP in the GPUDirect (--use_cuda) pass ONLY; they still run on the
   # NIC. ib_send_lat over CUDA memory is fragile on some driver/perftest combos,
   # so it's excluded by default. Set [] to attempt every test over GPUDirect.
@@ -131,17 +132,25 @@ report:
 #   nad  : the NetworkAttachmentDefinition name. The NAD's node-token usually
 #          differs from the hostname (host ocp4-...-h200-03 -> NAD roce-h200-3-...),
 #          so set it explicitly. Omit it to fall back to topology.nadPattern.
+#   gpuIndex : (GPUDirect only) the GPU PAIRED WITH THIS nic. Each rail has its own
+#          GPU on the same PCIe switch, so the spine rail needs a DIFFERENT GPU than
+#          the leaf rails. Check the affinity with `nvidia-smi topo -m` (look for
+#          PIX/PXB between the GPU and the mlx NIC). Omit to fall back to
+#          gpudirect.gpuIndex.
 # -----------------------------------------------------------------------------
 scenario:
   server:
     node: ocp4-hypershift-nova-h200-03
     nic: ens32
     nad: roce-h200-3-ens32
+    gpuIndex: 0                      # GPU on the ens32 rail (leaf 1)
   sameLeaf:                          # peer host on the SAME rail/leaf (no spine)
     node: ocp4-hypershift-nova-h200-04
     nic: ens32
     nad: roce-h200-4-ens32
+    gpuIndex: 0                      # GPU on the ens32 rail (leaf 1)
   spine:                             # rail on a DIFFERENT leaf -> crosses the spine
     node: ocp4-hypershift-nova-h200-04
     nic: ens36
     nad: roce-h200-4-ens36
+    gpuIndex: 4                      # GPU on the ens36 rail (leaf 2) -- different GPU

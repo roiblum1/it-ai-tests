@@ -66,10 +66,9 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
   value: {{ $b.lat.send.unsorted | quote }}
 - name: GPUDIRECT_ENABLED
   value: {{ .Values.gpudirect.enabled | quote }}
-- name: GPU_INDEX
-  value: {{ .Values.gpudirect.gpuIndex | quote }}
 - name: GPUDIRECT_SKIP
   value: "{{ range .Values.gpudirect.skip }}{{ . }} {{ end }}"
+{{- /* GPU_INDEX is per-pod (paired with each pod's nic), added by roce-perf.container */}}
 - name: NCCL_COLLECTIVE
   value: {{ .Values.nccl.collective | quote }}
 - name: NCCL_SIZE_BEGIN
@@ -88,7 +87,7 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
 
 {{/*
 Renders the container block shared by every pod.
-Call with a dict: {"ctx": $root, "resource": <device-plugin resource>, "command": <list-as-string>}
+Call with a dict: {"ctx": $root, "resource": <device-plugin resource>, "gpuIndex": <int>, "command": <list-as-string>}
 */}}
 {{- define "roce-perf.container" -}}
 - name: rdma
@@ -98,6 +97,8 @@ Call with a dict: {"ctx": $root, "resource": <device-plugin resource>, "command"
   workingDir: {{ .ctx.Values.results.mountPath }}
   env:
     {{- include "roce-perf.env" .ctx | nindent 4 }}
+    - name: GPU_INDEX
+      value: {{ .gpuIndex | quote }}
   securityContext:
     {{- if .ctx.Values.privileged }}
     privileged: true
