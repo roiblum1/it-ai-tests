@@ -92,6 +92,10 @@ benchmarks:
 gpudirect:
   enabled: false
   gpuIndex: 0
+  # Tests to SKIP in the GPUDirect (--use_cuda) pass ONLY; they still run on the
+  # NIC. ib_send_lat over CUDA memory is fragile on some driver/perftest combos,
+  # so it's excluded by default. Set [] to attempt every test over GPUDirect.
+  skip: [send_lat]
 
 # 1.7 NCCL one-HCA-vs-all. Heaviest path; run manually via mpirun between the
 # two 1-to-1 pods (see NOTES.txt). Default off.

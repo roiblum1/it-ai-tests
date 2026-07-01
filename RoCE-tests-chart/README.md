@@ -88,7 +88,7 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 
 - `benchmarks.bw.{read,write}` — `enabled`, `duration` (`-D`), `sizes` (`-s`), `qps` (`-q`)
 - `benchmarks.lat.{write,read,send}` — `enabled`, `iters` (`-n`), `size`, `unsorted` (`-U`)
-- `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda`
+- `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda`; `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
 - `nccl.*` — one-HCA-vs-all (gated off by default; needs ssh between pods)
 - `report.enabled` — run the plot Job in-cluster instead of via `run_suite.sh --report`
 

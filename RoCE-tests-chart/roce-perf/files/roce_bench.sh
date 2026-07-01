@@ -23,6 +23,7 @@
 #   LAT_READ_*   ib_read_lat   (1.4)
 #   LAT_SEND_*   ib_send_lat   (1.5)
 #   GPUDIRECT_ENABLED=true     (1.6)  re-runs the whole matrix with --use_cuda
+#   GPUDIRECT_SKIP="send_lat"         tests to skip in the CUDA pass only (still on NIC)
 #
 # The client writes a structured run directory under $RESULTS that the report Job
 # (plot_report.py) reads back:
@@ -74,6 +75,7 @@ LAT_SEND_UNSORTED="${LAT_SEND_UNSORTED:-true}"
 
 GPUDIRECT_ENABLED="${GPUDIRECT_ENABLED:-false}"
 GPU_INDEX="${GPU_INDEX:-0}"
+GPUDIRECT_SKIP="${GPUDIRECT_SKIP:-send_lat}"            # tests to skip in the CUDA pass only
 CUDA_BIN_DIR="${CUDA_BIN_DIR:-/opt/perftest-cuda/bin}"   # CUDA-built perftest, for --use_cuda
 
 # ----------------------------------------------------------------------------
@@ -144,6 +146,16 @@ add_lat_test() {  # name binary enabled iters size unsorted subtree cuda_flag
   NEXT_PORT=$((NEXT_PORT + 1))
 }
 
+# "enabled" for the GPUDirect pass: the test's own flag AND not in GPUDIRECT_SKIP.
+gpudirect_enabled_for() {   # name test_enabled
+  local name="$1" enabled="$2" skip
+  [ "$enabled" = true ] || { echo false; return; }
+  for skip in $GPUDIRECT_SKIP; do
+    [ "$skip" = "$name" ] && { echo false; return; }
+  done
+  echo true
+}
+
 build_test_plan() {
   PLAN=()
   NEXT_PORT=18000
@@ -156,13 +168,14 @@ build_test_plan() {
   add_lat_test send_lat  ib_send_lat   "$LAT_SEND_ENABLED"  "$LAT_SEND_ITERS"    "$LAT_SEND_SIZE"  "$LAT_SEND_UNSORTED"  "" ""
 
   # Pass 2 -- GPUDirect: the same matrix with --use_cuda, on its own ports.
+  # Tests named in GPUDIRECT_SKIP are excluded here (they still ran on the NIC).
   if [ "$GPUDIRECT_ENABLED" = true ]; then
     local cuda="--use_cuda=$GPU_INDEX"
-    add_bw_test  read_bw   ib_read_bw    "$BW_READ_ENABLED"   "$BW_READ_DURATION"  "$BW_READ_SIZES"  "$BW_READ_QPS"  gpudirect "$cuda"
-    add_bw_test  write_bw  ib_write_bw   "$BW_WRITE_ENABLED"  "$BW_WRITE_DURATION" "$BW_WRITE_SIZES" "$BW_WRITE_QPS" gpudirect "$cuda"
-    add_lat_test write_lat ib_write_lat  "$LAT_WRITE_ENABLED" "$LAT_WRITE_ITERS"   "$LAT_WRITE_SIZE" "$LAT_WRITE_UNSORTED" gpudirect "$cuda"
-    add_lat_test read_lat  ib_read_lat   "$LAT_READ_ENABLED"  "$LAT_READ_ITERS"    "$LAT_READ_SIZE"  "$LAT_READ_UNSORTED"  gpudirect "$cuda"
-    add_lat_test send_lat  ib_send_lat   "$LAT_SEND_ENABLED"  "$LAT_SEND_ITERS"    "$LAT_SEND_SIZE"  "$LAT_SEND_UNSORTED"  gpudirect "$cuda"
+    add_bw_test  read_bw   ib_read_bw    "$(gpudirect_enabled_for read_bw   "$BW_READ_ENABLED")"   "$BW_READ_DURATION"  "$BW_READ_SIZES"  "$BW_READ_QPS"  gpudirect "$cuda"
+    add_bw_test  write_bw  ib_write_bw   "$(gpudirect_enabled_for write_bw  "$BW_WRITE_ENABLED")"  "$BW_WRITE_DURATION" "$BW_WRITE_SIZES" "$BW_WRITE_QPS" gpudirect "$cuda"
+    add_lat_test write_lat ib_write_lat  "$(gpudirect_enabled_for write_lat "$LAT_WRITE_ENABLED")" "$LAT_WRITE_ITERS"   "$LAT_WRITE_SIZE" "$LAT_WRITE_UNSORTED" gpudirect "$cuda"
+    add_lat_test read_lat  ib_read_lat   "$(gpudirect_enabled_for read_lat  "$LAT_READ_ENABLED")"  "$LAT_READ_ITERS"    "$LAT_READ_SIZE"  "$LAT_READ_UNSORTED"  gpudirect "$cuda"
+    add_lat_test send_lat  ib_send_lat   "$(gpudirect_enabled_for send_lat  "$LAT_SEND_ENABLED")"  "$LAT_SEND_ITERS"    "$LAT_SEND_SIZE"  "$LAT_SEND_UNSORTED"  gpudirect "$cuda"
   fi
 }
 

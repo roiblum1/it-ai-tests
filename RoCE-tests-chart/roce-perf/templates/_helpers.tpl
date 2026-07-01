@@ -68,6 +68,8 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
   value: {{ .Values.gpudirect.enabled | quote }}
 - name: GPU_INDEX
   value: {{ .Values.gpudirect.gpuIndex | quote }}
+- name: GPUDIRECT_SKIP
+  value: "{{ range .Values.gpudirect.skip }}{{ . }} {{ end }}"
 - name: NCCL_COLLECTIVE
   value: {{ .Values.nccl.collective | quote }}
 - name: NCCL_SIZE_BEGIN
