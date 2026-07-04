@@ -7,18 +7,20 @@
 # package has no GPUDirect), and nccl-tests is always `make`'d from source
 # (NVIDIA ships the NCCL library, not the test binaries).
 #
-# CUDA base matches the node driver's CUDA level (driver 580 -> CUDA 13). The base
-# is a PREBUILT NVIDIA x86 image; `--platform linux/amd64` pulls the x86 variant.
+# The base is a PREBUILT NVIDIA x86 image; `--platform linux/amd64` pulls x86.
 #
-# ****  BUILD THIS ON x86 (native nvcc)  ****
-# The default (CUDA 13 + perftest master) compiles src/cuda_kernels.cu with nvcc,
-# which SEGFAULTS under x86 QEMU emulation on an ARM Mac. On a real x86 host (a GPU
-# node, an `oc` BuildConfig, a cloud x86 VM) it builds fine. To build on an ARM Mac,
-# fall back to the CUDA-12.6 base + the pre-cuda_kernels perftest (cuda_loader.c,
-# pure gcc, no nvcc) -- it still runs on the CUDA-13 driver via backward compat:
-#   podman build --platform linux/amd64 \
-#     --build-arg CUDA_IMAGE=nvcr.io/nvidia/cuda:12.6.2-devel-ubuntu22.04 \
-#     --build-arg PERFTEST_REF=v4.5-0.20 -t <img> RoCE-tests-chart/
+# DEFAULT = the ARM-Mac-buildable combo (CUDA 12.6 + perftest v4.5-0.20). That
+# perftest's CUDA path is cuda_loader.c (dlopen, pure gcc) -> no nvcc -> it cross-
+# compiles under x86 QEMU on an ARM Mac, and it still runs on the CUDA-13 / 580
+# driver via backward compat. NCCL needs no perftest, so this default fully works
+# for NCCL + the NIC/latency suite. Plain build:
+#   podman build --platform linux/amd64 -t <img> RoCE-tests-chart/
+#
+# CUDA-13-NATIVE GPUDirect (newer perftest compiles src/cuda_kernels.cu with nvcc,
+# which segfaults under QEMU) -> BUILD ON x86 (GPU node / oc BuildConfig / x86 VM):
+#   podman build \
+#     --build-arg CUDA_IMAGE=nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04 \
+#     --build-arg PERFTEST_REF=master -t <img> RoCE-tests-chart/
 #
 # Final image contains the full Phase-1 + NCCL toolset:
 #   - perftest (plain)   /usr/bin/ib_*           NIC tests, runs on any node
@@ -29,12 +31,12 @@
 #   - python plotting    matplotlib + numpy       report Job
 # Driver libcuda.so.1 is provided by the GPU node at runtime (not shipped).
 # =============================================================================
-ARG CUDA_IMAGE=nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04
+ARG CUDA_IMAGE=nvcr.io/nvidia/cuda:12.6.2-devel-ubuntu22.04
 FROM ${CUDA_IMAGE}
 
-# perftest master supports CUDA 13 (needs nvcc -> x86 build). Override to v4.5-0.20
-# with the CUDA-12.6 base for an ARM-Mac fallback (see header).
-ARG PERFTEST_REF=master
+# v4.5-0.20 cross-builds on an ARM Mac (no nvcc). For a CUDA-13-native GPUDirect
+# build on x86, override CUDA_IMAGE to a 13.0.x base + PERFTEST_REF=master.
+ARG PERFTEST_REF=v4.5-0.20
 ARG NCCL_TESTS_REF=master
 ENV DEBIAN_FRONTEND=noninteractive
 
