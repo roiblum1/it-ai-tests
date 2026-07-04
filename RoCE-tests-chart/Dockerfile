@@ -23,10 +23,12 @@
 # =============================================================================
 FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04
 
-# perftest master builds cleanly against the modern rdma-core on Ubuntu 24.04
-# (the old mlx5dv.h constraint that forced v4.5-0.20 was a UBI-headers problem).
-# Pin a release tag here for reproducibility if desired.
-ARG PERFTEST_REF=master
+# Pin perftest to v4.5-0.20: its CUDA path is cuda_loader.c (dlopen, pure gcc), so
+# the CUDA build cross-compiles under x86 QEMU on an ARM Mac. NEWER perftest adds
+# src/cuda_kernels.cu which nvcc must compile -> nvcc segfaults under QEMU (same
+# reason nccl-tests can't be cross-built). It still runs against the CUDA-13 driver
+# at runtime (libcuda is dlopen'd from the node). Build on x86 to use a newer tag.
+ARG PERFTEST_REF=v4.5-0.20
 ARG NCCL_TESTS_REF=master
 ENV DEBIAN_FRONTEND=noninteractive
 

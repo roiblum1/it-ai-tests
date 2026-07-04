@@ -67,6 +67,16 @@ oc_exec() { oc exec -n "$NAMESPACE" "$1" -- bash -c "$2"; }
 log() { echo -e "\n>>> $*"; }
 
 # ----------------------------------------------------------------------------
+# 0. Grant the privileged SCC to the pods' service account (idempotent). The pods
+#    run privileged; SCC is checked at pod ADMISSION, so this is best applied
+#    BEFORE the chart is installed. If the pods are already stuck on admission,
+#    re-run helm install/upgrade after this grant.
+# ----------------------------------------------------------------------------
+log "Granting privileged SCC to the 'default' service account in $NAMESPACE (idempotent)..."
+oc adm policy add-scc-to-user privileged -z default -n "$NAMESPACE" \
+  || echo "WARN: could not grant privileged SCC (need cluster-admin?); the pods must already be allowed to run privileged"
+
+# ----------------------------------------------------------------------------
 # 1. Wait for all pods to be Ready.
 # ----------------------------------------------------------------------------
 log "Waiting for pods to be Ready in namespace '$NAMESPACE'..."
