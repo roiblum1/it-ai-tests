@@ -7,28 +7,34 @@
 # package has no GPUDirect), and nccl-tests is always `make`'d from source
 # (NVIDIA ships the NCCL library, not the test binaries).
 #
-# CUDA base MUST match the node driver's CUDA level (driver 580 -> CUDA 13). A
-# too-old base (12.6) vs a 13.0 driver makes perftest --use_cuda segfault and NCCL
-# fall back to the socket transport. Verify the exact 13.0.x devel tag on NGC.
+# CUDA base matches the node driver's CUDA level (driver 580 -> CUDA 13). The base
+# is a PREBUILT NVIDIA x86 image; `--platform linux/amd64` pulls the x86 variant.
+#
+# ****  BUILD THIS ON x86 (native nvcc)  ****
+# The default (CUDA 13 + perftest master) compiles src/cuda_kernels.cu with nvcc,
+# which SEGFAULTS under x86 QEMU emulation on an ARM Mac. On a real x86 host (a GPU
+# node, an `oc` BuildConfig, a cloud x86 VM) it builds fine. To build on an ARM Mac,
+# fall back to the CUDA-12.6 base + the pre-cuda_kernels perftest (cuda_loader.c,
+# pure gcc, no nvcc) -- it still runs on the CUDA-13 driver via backward compat:
+#   podman build --platform linux/amd64 \
+#     --build-arg CUDA_IMAGE=nvcr.io/nvidia/cuda:12.6.2-devel-ubuntu22.04 \
+#     --build-arg PERFTEST_REF=v4.5-0.20 -t <img> RoCE-tests-chart/
 #
 # Final image contains the full Phase-1 + NCCL toolset:
 #   - perftest (plain)   /usr/bin/ib_*           NIC tests, runs on any node
 #   - perftest (CUDA)    /opt/perftest-cuda/bin  GPUDirect (--use_cuda), GPU nodes
 #   - nccl-tests SOURCE  /opt/nccl-tests          built on first use on a GPU node
-#                                                 (nvcc can't cross-build under emulation)
 #   - NCCL + OpenMPI (apt)  mpirun                cross-node collective launcher
 #   - openssh               sshd/ssh              mpirun transport between pods
 #   - python plotting    matplotlib + numpy       report Job
 # Driver libcuda.so.1 is provided by the GPU node at runtime (not shipped).
 # =============================================================================
-FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04
+ARG CUDA_IMAGE=nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04
+FROM ${CUDA_IMAGE}
 
-# Pin perftest to v4.5-0.20: its CUDA path is cuda_loader.c (dlopen, pure gcc), so
-# the CUDA build cross-compiles under x86 QEMU on an ARM Mac. NEWER perftest adds
-# src/cuda_kernels.cu which nvcc must compile -> nvcc segfaults under QEMU (same
-# reason nccl-tests can't be cross-built). It still runs against the CUDA-13 driver
-# at runtime (libcuda is dlopen'd from the node). Build on x86 to use a newer tag.
-ARG PERFTEST_REF=v4.5-0.20
+# perftest master supports CUDA 13 (needs nvcc -> x86 build). Override to v4.5-0.20
+# with the CUDA-12.6 base for an ARM-Mac fallback (see header).
+ARG PERFTEST_REF=master
 ARG NCCL_TESTS_REF=master
 ENV DEBIAN_FRONTEND=noninteractive
 
