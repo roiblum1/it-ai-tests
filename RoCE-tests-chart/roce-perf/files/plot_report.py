@@ -10,7 +10,10 @@ a self-contained report.html into <results>/<output-subdir>.
 
 Graphs:
   - BW grouped bars (avg Gb/s) per test, one bar group per environment/size.
+  - Latency over time per test: raw -U samples vs sample order (peak-preserving
+    downsample) -> spikes/jitter visible.
   - Latency CDF overlay per test (sorts the raw -U samples) -> tail comparison.
+  - Latency histogram per test (log-y) -> distribution.
   - Latency percentile table from each run's <test>.json.
   - GPUDirect charts when a gpudirect/ subtree exists.
   - NCCL one-HCA-vs-all bar when nccl/nccl.json exists.
@@ -125,6 +128,83 @@ def plot_lat_cdf(runs, test, subtree, out_dir):
     return fname
 
 
+def _load_samples(path):
+    """Raw -U samples as a 1-D array, or None if missing/empty/unparseable."""
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return None
+    try:
+        s = np.atleast_1d(np.loadtxt(path))
+    except ValueError:
+        return None
+    return s if s.size else None
+
+
+def _peak_downsample(y, target=5000):
+    """Downsample to ~target points while KEEPING spikes (max within each bin)."""
+    n = y.size
+    if n <= target:
+        return np.arange(n), y
+    edges = np.linspace(0, n, target + 1, dtype=int)
+    xs, ys = [], []
+    for a, b in zip(edges[:-1], edges[1:]):
+        if b <= a:
+            continue
+        j = int(np.argmax(y[a:b]))
+        xs.append(a + j)
+        ys.append(y[a + j])
+    return np.array(xs), np.array(ys)
+
+
+def plot_lat_timeseries(runs, test, subtree, out_dir):
+    """Latency vs sample index (proxy for time) -> see spikes/jitter over the run."""
+    plotted = False
+    plt.figure(figsize=(9, 4))
+    for r in runs:
+        sub = (subtree + "/") if subtree else ""
+        s = _load_samples(os.path.join(r["path"], sub + "lat", test + ".unsorted.txt"))
+        if s is None:
+            continue
+        x, y = _peak_downsample(s)
+        plt.plot(x, y, linewidth=0.6, label=r["label"], rasterized=True)
+        plotted = True
+    if not plotted:
+        plt.close(); return None
+    tag = " (GPUDirect)" if subtree else ""
+    plt.title(f"{test} latency over time{tag}  (peaks preserved)")
+    plt.xlabel("sample # (in order)"); plt.ylabel("latency (usec)")
+    plt.legend(); plt.grid(alpha=0.3)
+    fname = f"lattime_{subtree or 'nic'}_{test}.png"
+    plt.tight_layout(); plt.savefig(os.path.join(out_dir, fname), dpi=110); plt.close()
+    return fname
+
+
+def plot_lat_hist(runs, test, subtree, out_dir):
+    """Histogram of the -U sample distribution (log-y so the tail is visible)."""
+    data = []
+    for r in runs:
+        sub = (subtree + "/") if subtree else ""
+        s = _load_samples(os.path.join(r["path"], sub + "lat", test + ".unsorted.txt"))
+        if s is not None:
+            data.append((r["label"], s))
+    if not data:
+        return None
+    lo = min(float(s.min()) for _, s in data)
+    hi = max(float(np.percentile(s, 99.9)) for _, s in data)
+    if hi <= lo:
+        hi = lo + 1.0
+    bins = np.linspace(lo, hi, 60)
+    plt.figure(figsize=(8, 4))
+    for lab, s in data:
+        plt.hist(s, bins=bins, histtype="step", log=True, label=lab)
+    tag = " (GPUDirect)" if subtree else ""
+    plt.title(f"{test} latency histogram{tag}")
+    plt.xlabel("latency (usec)"); plt.ylabel("count (log)")
+    plt.legend(); plt.grid(alpha=0.3)
+    fname = f"lathist_{subtree or 'nic'}_{test}.png"
+    plt.tight_layout(); plt.savefig(os.path.join(out_dir, fname), dpi=110); plt.close()
+    return fname
+
+
 def load_lat_json(runs, test, subtree):
     """-> list of (label, {percentiles}) for the table."""
     rows = []
@@ -224,11 +304,13 @@ def main():
             if img:
                 html.append(f"<img src='{img}' alt='{test}'>")
 
-        html.append("<h3>Latency (CDF + percentiles)</h3>")
+        html.append("<h3>Latency (over-time peaks, CDF, histogram, percentiles)</h3>")
         for test in LAT_TESTS:
-            img = plot_lat_cdf(runs, test, subtree, out_dir)
-            if img:
-                html.append(f"<img src='{img}' alt='{test}'>")
+            for img in (plot_lat_timeseries(runs, test, subtree, out_dir),
+                        plot_lat_cdf(runs, test, subtree, out_dir),
+                        plot_lat_hist(runs, test, subtree, out_dir)):
+                if img:
+                    html.append(f"<img src='{img}' alt='{test}'>")
             rows = load_lat_json(runs, test, subtree)
             if rows:
                 html.append(f"<p><b>{test}</b> (usec)</p><table><tr><th>env</th>"

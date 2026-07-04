@@ -81,12 +81,20 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
   value: {{ .Values.nccl.sizes.end | quote }}
 - name: NCCL_SIZE_FACTOR
   value: {{ .Values.nccl.sizes.factor | quote }}
-- name: NCCL_GPUS_PER_PROC
-  value: {{ .Values.nccl.gpusPerProc | quote }}
+- name: NCCL_GPUS
+  value: {{ .Values.nccl.gpus | quote }}
 - name: NCCL_HCA_ONE
   value: {{ .Values.nccl.hcaOne | quote }}
 - name: NCCL_HCA_ALL
   value: {{ .Values.nccl.hcaAll | quote }}
+- name: NCCL_IB_GID_INDEX_CFG
+  value: {{ .Values.nccl.ib.gidIndex | quote }}
+- name: NCCL_SOCKET_IFNAME_CFG
+  value: {{ .Values.nccl.ib.socketIfname | quote }}
+- name: NCCL_IB_DISABLE_CFG
+  value: {{ .Values.nccl.ib.disable | quote }}
+- name: NCCL_DEBUG_CFG
+  value: {{ .Values.nccl.ib.debug | quote }}
 {{- end -}}
 
 {{/*

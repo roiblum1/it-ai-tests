@@ -56,8 +56,10 @@ Manual equivalent, if you prefer step by step:
 
 {{- if .Values.nccl.enabled }}
 
-NCCL one-HCA-vs-all (1.7): requires sshd up on BOTH pods + key auth between them.
-   oc exec -n {{ .Release.Namespace }} rdma-client-leaf -- bash {{ .Values.script.mountPath }}/nccl_one_vs_many.sh <peer_pod_ip> nccl-2pods
+NCCL one-HCA-vs-all (1.7) is ENABLED: pods nccl-launcher ({{ (index .Values.nccl.nodes 0).host }})
+and nccl-peer ({{ (index .Values.nccl.nodes 1).host }}), each on rails [{{ join " " .Values.nccl.rails }}] + {{ .Values.nccl.gpus }} GPUs.
+Drive it (sets up SSH, builds nccl-tests on both, runs mpirun):
+   ../run_suite.sh -n {{ .Release.Namespace }} --nccl --report
 {{- end }}
 
 Not built yet: many-to-many (env 2.3) and tail-latency-under-load (env 2.4).

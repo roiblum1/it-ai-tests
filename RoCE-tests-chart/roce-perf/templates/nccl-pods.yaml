@@ -1,0 +1,65 @@
+{{- if .Values.nccl.enabled -}}
+{{- $root := . -}}
+{{- $n := .Values.nccl -}}
+{{- $t := .Values.topology -}}
+{{- if lt (len $n.nodes) 2 }}{{ fail "nccl.nodes must list two nodes (launcher, peer)" }}{{- end -}}
+{{/*
+  NCCL one-vs-many: two pods (launcher + peer), one per node, each attached to a
+  SUBSET of rails (nccl.rails) + nccl.gpus GPUs. Idle; run_suite.sh --nccl sets up
+  SSH and launches mpirun. Cross-node all_reduce exercises the rails.
+*/}}
+{{- $pods := list
+    (dict "name" "nccl-launcher" "host" (index $n.nodes 0).host "nadNode" (index $n.nodes 0).nadNode)
+    (dict "name" "nccl-peer"     "host" (index $n.nodes 1).host "nadNode" (index $n.nodes 1).nadNode)
+-}}
+{{- range $pod := $pods }}
+{{- $nads := list -}}
+{{- range $rail := $n.rails }}{{ $nads = append $nads ($t.nadPattern | replace "{node}" $pod.nadNode | replace "{nic}" $rail) }}{{- end }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $pod.name }}
+  labels:
+    {{- include "roce-perf.labels" $root | nindent 4 }}
+    roce-perf/role: nccl
+  annotations:
+    k8s.v1.cni.cncf.io/networks: {{ join "," $nads | quote }}
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: {{ $pod.host }}
+  containers:
+    - name: rdma
+      image: {{ $root.Values.image }}
+      imagePullPolicy: {{ $root.Values.imagePullPolicy }}
+      command: ["sleep", "infinity"]
+      workingDir: {{ $root.Values.results.mountPath }}
+      env:
+        {{- include "roce-perf.env" $root | nindent 8 }}
+      securityContext:
+        {{- if $root.Values.privileged }}
+        privileged: true
+        {{- end }}
+        capabilities:
+          add: {{ if $root.Values.ipcLock }}["IPC_LOCK"]{{ else }}[]{{ end }}
+      resources:
+        limits:
+          nvidia.com/gpu: {{ $n.gpus | quote }}
+          {{- range $rail := $n.rails }}
+          {{ $t.resourcePattern | replace "{nic}" $rail | quote }}: "1"
+          {{- end }}
+        requests:
+          nvidia.com/gpu: {{ $n.gpus | quote }}
+          {{- range $rail := $n.rails }}
+          {{ $t.resourcePattern | replace "{nic}" $rail | quote }}: "1"
+          {{- end }}
+      volumeMounts:
+        - name: scripts
+          mountPath: {{ $root.Values.script.mountPath }}
+        - name: results
+          mountPath: {{ $root.Values.results.mountPath }}
+  volumes:
+    {{- include "roce-perf.volumes" $root | nindent 4 }}
+{{- end }}
+{{- end }}

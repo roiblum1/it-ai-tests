@@ -73,8 +73,10 @@ helm install demo roce-perf -n <ns>
 oc adm policy add-scc-to-user privileged -z default -n <ns>
 
 # 3. drive the whole run from your machine: discovers the server IP, runs both
-#    clients, builds the report, and copies report.html to ./report
-./run_suite.sh -n <ns> --report
+#    clients, builds the report, and copies report.html to ./report.
+#    add --nccl to also run the NCCL one-vs-many test (needs nccl.enabled=true).
+./run_suite.sh -n <ns> --report            # perftest only
+./run_suite.sh -n <ns> --nccl --report     # perftest + NCCL
 
 # 4. open the report
 open ./report/report.html
@@ -91,7 +93,11 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 - `benchmarks.bw.{read,write}` — `enabled`, `duration` (`-D`), `sizes` (`-s`), `qps` (`-q`)
 - `benchmarks.lat.{write,read,send}` — `enabled`, `iters` (`-n`), `size`, `unsorted` (`-U`)
 - `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda` (per-pod GPU is `scenario.*.gpuIndex`; `gpudirect.gpuIndex` is only the fallback). `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
-- `nccl.*` — one-HCA-vs-all (gated off by default; needs ssh between pods)
+- `nccl.*` — one-HCA-vs-all across 2 nodes (gated off by default). `nccl.enabled`
+  stamps a `nccl-launcher`/`nccl-peer` pair (each on `nccl.nodes[].host`, attached to
+  `nccl.rails` + `nccl.gpus` GPUs). `nccl.ib.*` is the RoCE tuning (GID index, socket
+  iface, IB disable, debug) passed to NCCL. Run it with `run_suite.sh --nccl` (it sets
+  up SSH, builds nccl-tests on both, launches `mpirun`).
 - `numactl.{enabled,node}` — pin perftest to the rail's socket (`node: auto` reads the NIC's `numa_node` from sysfs per pod). For the bind to take real cores, set `resources.{cpu,memory}` (makes the pod Guaranteed QoS) + run the kubelet topology manager with `single-numa-node`; otherwise it warns and runs unpinned.
 - `report.enabled` — run the plot Job in-cluster instead of via `run_suite.sh --report`
 
@@ -107,7 +113,8 @@ Each client writes a per-run directory to its node-local results dir (`run_suite
   lat/<test>.unsorted.txt + .json      # raw -U samples + min/avg/p50/p99/p999/max
   gpudirect/{bw,lat}/...               # same tree when gpudirect.enabled
   full.log
-/results/report/report.html            # graphs: BW bars, latency CDFs, percentile table
+/results/report/report.html            # graphs: BW bars, latency over-time (peaks),
+                                       #   CDFs, histograms, percentile table, NCCL bar
 ```
 
 ## Manual run (without the driver)

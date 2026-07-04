@@ -19,13 +19,18 @@ set -euo pipefail
 
 NAMESPACE=""
 MAKE_REPORT=false
+RUN_NCCL=false
 OUT_DIR="./report"
 
 SERVER_POD="rdma-server"
 SCRIPT_PATH="/opt/roce/roce_bench.sh"
+NCCL_SCRIPT="/opt/roce/nccl_one_vs_many.sh"
 PLOT_PATH="/opt/roce/plot_report.py"
 RESULTS_DIR="/results"
 REPORT_SUBDIR="report"
+
+NCCL_LAUNCHER="nccl-launcher"
+NCCL_PEER="nccl-peer"
 
 # client pod  ->  env-label (tags the run directory)
 CLIENTS=(
@@ -34,8 +39,9 @@ CLIENTS=(
 )
 
 usage() {
-  echo "usage: $0 -n <namespace> [--report] [--out <dir>]"
+  echo "usage: $0 -n <namespace> [--nccl] [--report] [--out <dir>]"
   echo "  -n, --namespace   OpenShift namespace the chart is installed in (required)"
+  echo "      --nccl        also run the NCCL one-vs-many test (needs nccl.enabled=true)"
   echo "      --report      generate report.html and copy it to <dir> (default: ./report)"
   echo "      --out         output directory for --report (default: ./report)"
   exit 1
@@ -44,6 +50,7 @@ usage() {
 while [ $# -gt 0 ]; do
   case "$1" in
     -n|--namespace) NAMESPACE="${2:-}"; shift 2 ;;
+    --nccl)         RUN_NCCL=true;      shift ;;
     --report)       MAKE_REPORT=true;   shift ;;
     --out)          OUT_DIR="${2:-}";   shift 2 ;;
     -h|--help)      usage ;;
@@ -51,6 +58,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -z "$NAMESPACE" ] && usage
+
+# result-producing pods to gather for the report (NCCL launcher added with --nccl)
+GATHER_PODS=( "${CLIENTS[@]%%:*}" )
 
 oc_exec() { oc exec -n "$NAMESPACE" "$1" -- bash -c "$2"; }
 
@@ -93,6 +103,40 @@ for entry in "${CLIENTS[@]}"; do
 done
 
 # ----------------------------------------------------------------------------
+# 3b. Optional NCCL one-vs-many. Set up passwordless SSH between the two NCCL
+#     pods, build nccl-tests on both, then launch mpirun from the launcher.
+# ----------------------------------------------------------------------------
+if [ "$RUN_NCCL" = true ]; then
+  log "NCCL: waiting for $NCCL_LAUNCHER and $NCCL_PEER (needs nccl.enabled=true)..."
+  for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
+    oc wait -n "$NAMESPACE" --for=condition=Ready "pod/$p" --timeout=300s
+  done
+
+  log "NCCL: setting up passwordless SSH between the pods..."
+  for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
+    oc_exec "$p" 'pgrep -x sshd >/dev/null 2>&1 || /usr/sbin/sshd'
+  done
+  oc_exec "$NCCL_LAUNCHER" 'test -f ~/.ssh/id_rsa || { mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -q -t rsa -N "" -f ~/.ssh/id_rsa; }'
+  PUBKEY="$(oc_exec "$NCCL_LAUNCHER" 'cat ~/.ssh/id_rsa.pub')"
+  for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
+    printf '%s\n' "$PUBKEY" | oc exec -i -n "$NAMESPACE" "$p" -- bash -c \
+      'mkdir -p ~/.ssh && chmod 700 ~/.ssh && k=$(cat); grep -qxF "$k" ~/.ssh/authorized_keys 2>/dev/null || echo "$k" >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys'
+  done
+
+  log "NCCL: building nccl-tests on both pods (first run only)..."
+  for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
+    oc_exec "$p" "bash $NCCL_SCRIPT build"
+  done
+
+  PEER_IP="$(oc get pod -n "$NAMESPACE" "$NCCL_PEER" -o jsonpath='{.status.podIP}')"
+  [ -z "$PEER_IP" ] && { echo "ERROR: could not read $NCCL_PEER pod IP"; exit 1; }
+  log "NCCL: launching from $NCCL_LAUNCHER against peer $PEER_IP..."
+  oc_exec "$NCCL_LAUNCHER" "bash $NCCL_SCRIPT $PEER_IP nccl"
+
+  GATHER_PODS+=( "$NCCL_LAUNCHER" )
+fi
+
+# ----------------------------------------------------------------------------
 # 4. Optional: build the combined report and copy it back locally.
 #
 # Each pod's results live in node-local storage (hostPath/emptyDir), and the
@@ -101,8 +145,7 @@ done
 # the plotter there. With a shared PVC this gather is just a harmless no-op.
 # ----------------------------------------------------------------------------
 if [ "$MAKE_REPORT" = true ]; then
-  for entry in "${CLIENTS[@]}"; do
-    pod="${entry%%:*}"
+  for pod in "${GATHER_PODS[@]}"; do
     log "Gathering results from $pod -> $SERVER_POD ..."
     oc exec -n "$NAMESPACE" "$pod" -- \
       tar -C "$RESULTS_DIR" --exclude="./$REPORT_SUBDIR" -cf - . \

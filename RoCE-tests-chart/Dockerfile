@@ -7,18 +7,26 @@
 # package has no GPUDirect), and nccl-tests is always `make`'d from source
 # (NVIDIA ships the NCCL library, not the test binaries).
 #
-# Final image contains the full Phase-1 toolset:
+# CUDA base MUST match the node driver's CUDA level (driver 580 -> CUDA 13). A
+# too-old base (12.6) vs a 13.0 driver makes perftest --use_cuda segfault and NCCL
+# fall back to the socket transport. Verify the exact 13.0.x devel tag on NGC.
+#
+# Final image contains the full Phase-1 + NCCL toolset:
 #   - perftest (plain)   /usr/bin/ib_*           NIC tests, runs on any node
 #   - perftest (CUDA)    /opt/perftest-cuda/bin  GPUDirect (--use_cuda), GPU nodes
 #   - nccl-tests SOURCE  /opt/nccl-tests          built on first use on a GPU node
 #                                                 (nvcc can't cross-build under emulation)
-#   - OpenMPI (apt)      mpirun                   launcher across the 2 pods
+#   - NCCL + OpenMPI (apt)  mpirun                cross-node collective launcher
+#   - openssh               sshd/ssh              mpirun transport between pods
 #   - python plotting    matplotlib + numpy       report Job
 # Driver libcuda.so.1 is provided by the GPU node at runtime (not shipped).
 # =============================================================================
-FROM nvcr.io/nvidia/cuda:12.6.2-devel-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04
 
-ARG PERFTEST_REF=v4.5-0.20
+# perftest master builds cleanly against the modern rdma-core on Ubuntu 24.04
+# (the old mlx5dv.h constraint that forced v4.5-0.20 was a UBI-headers problem).
+# Pin a release tag here for reproducibility if desired.
+ARG PERFTEST_REF=master
 ARG NCCL_TESTS_REF=master
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -47,7 +55,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         openssh-server openssh-client jq hostname gawk less vim-tiny procps \
         python3 python3-matplotlib python3-numpy \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /var/run/sshd && ssh-keygen -A
+    && mkdir -p /var/run/sshd && ssh-keygen -A \
+    && mkdir -p /etc/ssh/ssh_config.d \
+    && printf 'Host *\n    StrictHostKeyChecking no\n    UserKnownHostsFile /dev/null\n    LogLevel ERROR\n' \
+         > /etc/ssh/ssh_config.d/10-nccl.conf
 
 # -----------------------------------------------------------------------------
 # perftest: plain (-> /usr/bin) and CUDA/GPUDirect (-> /opt/perftest-cuda).

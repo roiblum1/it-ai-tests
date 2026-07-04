@@ -3,7 +3,7 @@
 # =============================================================================
 # Full benchmark image: perftest (plain + CUDA/GPUDirect), nccl-tests + OpenMPI,
 # python plotting stack. Build from ../Dockerfile.
-image: docker.io/roi12345/it-ai-rdma-perf:v1
+image: docker.io/roi12345/it-ai-rdma-perf:v2
 imagePullPolicy: IfNotPresent
 
 # Pods run privileged so in-pod diagnostics (ping/traceroute, which need raw/ICMP
@@ -121,18 +121,35 @@ gpudirect:
 # two 1-to-1 pods (see NOTES.txt). Default off.
 nccl:
   enabled: false
+  # Two pods (one per node) attached to a SUBSET of rails + GPUs. Cross-node
+  # all_reduce exercises the rails (intra-node uses NVLink), and NCCL_IB_HCA is
+  # restricted to one rail vs all to show rail aggregation. Drives via run_suite.sh
+  # --nccl (SSH + mpirun). Size rails/gpus to what the cluster can spare.
+  nodes:                            # exactly two: launcher, peer. host = k8s
+    - host: ocp4-hypershift-nova-h200-03   # hostname (scheduling); nadNode = the
+      nadNode: h200-3                       # NAD's node-token (NAD = nadPattern with
+    - host: ocp4-hypershift-nova-h200-04    # {node}=nadNode, {nic}=rail)
+      nadNode: h200-4
+  rails:                            # rails to attach (each -> a NAD + a resource)
+    - ens32
+    - ens33
+    - ens34
+    - ens35
+  gpus: 4                           # GPUs per pod -> nvidia.com/gpu and nccl-tests -g
   collective: all_reduce_perf
   sizes:
     begin: "8"                      # -b
     end: "128M"                     # -e
     factor: "2"                     # -f
-  gpusPerProc: 1                    # -g
-  # "auto" -> the script gathers the pod's actual RDMA devices from
-  # /sys/class/infiniband (hcaOne = first, hcaAll = all comma-joined). Override
-  # with an explicit list if needed. NOTE: a single-VF benchmark pod only exposes
-  # one device; a real one-vs-many run needs a pod attached to all rails.
-  hcaOne: auto                      # NCCL_IB_HCA for the "one rail" run
-  hcaAll: auto                      # NCCL_IB_HCA for the "all rails" run
+  hcaOne: auto                      # NCCL_IB_HCA "one rail"  (auto = first device)
+  hcaAll: auto                      # NCCL_IB_HCA "all rails" (auto = all, comma-joined)
+  # RoCE tuning passed to NCCL via `mpirun -x`. Without a valid GID index / socket
+  # iface NCCL falls back to the CPU/socket transport.
+  ib:
+    gidIndex: auto                  # NCCL_IB_GID_INDEX (auto = detect RoCEv2 GID via show_gids)
+    socketIfname: eth0              # NCCL_SOCKET_IFNAME (OOB bootstrap iface)
+    disable: "0"                    # NCCL_IB_DISABLE
+    debug: WARN                     # NCCL_DEBUG (INFO shows the transport + GID chosen)
 
 # In-cluster plotting/report Job: reads results PVC, emits PNGs + report.html
 # under <results.mountPath>/report. Requires results.pvcName (RWX).
