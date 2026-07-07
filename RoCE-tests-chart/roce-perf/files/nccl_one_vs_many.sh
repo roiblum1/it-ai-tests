@@ -118,26 +118,6 @@ to_bytes(){ echo "$1" | awk 'BEGIN{IGNORECASE=1}
 NSIZES="$(awk -v b="$(to_bytes "$BEGIN")" -v e="$(to_bytes "$END")" -v f="$FACTOR" \
   'BEGIN{ n=0; for (s=b; s<=e; s*=f) n++; print (n>0?n:1) }')"
 
-# sshd-spawned ranks do NOT inherit the image's baked-in ENV, so a remote rank can
-# die with "error while loading shared libraries: libcudart.so.12" (or libnccl.so.2)
-# even though the launcher is fine. Resolve the real dirs of those libs and forward
-# an EXPLICIT LD_LIBRARY_PATH to every rank -- belt-and-suspenders over -x
-# LD_LIBRARY_PATH, and covering both CUDA layouts (lib64 and targets/<arch>/lib).
-resolve_lib_dirs() {
-  local dirs="" lib p d
-  for lib in libcudart.so libnccl.so; do
-    for p in $(ldconfig -p 2>/dev/null | awk -v n="$lib" 'index($1,n){print $NF}'); do
-      dirs="$dirs:$(dirname "$p")"
-    done
-  done
-  for d in /usr/local/cuda/lib64 /usr/local/cuda/targets/*/lib /usr/lib/x86_64-linux-gnu; do
-    [ -d "$d" ] && dirs="$dirs:$d"
-  done
-  echo "${dirs#:}" | tr ':' '\n' | awk 'NF && !seen[$0]++' | paste -sd: -
-}
-MPI_LD_LIBRARY_PATH="$(resolve_lib_dirs):${LD_LIBRARY_PATH:-}"
-BIN="$NCCL_TESTS_DIR/build/$COLLECTIVE"   # absolute -- remote ranks may lack it on PATH
-
 # mpirun is only the bootstrap here (ssh-launch + a small OOB/BTL handshake); NCCL
 # itself moves the data over the RoCE HCAs. The pods are multi-homed (eth0 pod-SDN
 # + 8 RoCE rails), so left to itself OpenMPI may advertise an unroutable rail IP
@@ -159,8 +139,8 @@ run_nccl(){ # hca outfile tag
     -x NCCL_SHM_DISABLE="$SHM_DISABLE" \
     -x NCCL_SOCKET_IFNAME="$SOCK_IFNAME" \
     ${GID_INDEX:+-x NCCL_IB_GID_INDEX="$GID_INDEX"} \
-    -x LD_LIBRARY_PATH="$MPI_LD_LIBRARY_PATH" -x PATH \
-    "$BIN" -b "$BEGIN" -e "$END" -f "$FACTOR" -g "$GPUS" 2>&1 \
+    -x LD_LIBRARY_PATH -x PATH \
+    "$COLLECTIVE" -b "$BEGIN" -e "$END" -f "$FACTOR" -g "$GPUS" 2>&1 \
     | tee "$out" \
     | awk -v total="$NSIZES" -v tag="$tag" '
         # echo NCCL/MPI diagnostics through; add a compact per-size progress line.
