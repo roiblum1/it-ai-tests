@@ -146,7 +146,10 @@ nccl:
   # RoCE tuning passed to NCCL via `mpirun -x`. Without a valid GID index / socket
   # iface NCCL falls back to the CPU/socket transport.
   ib:
-    gidIndex: auto                  # NCCL_IB_GID_INDEX (auto = detect RoCEv2 GID via show_gids)
+    gidIndex: auto                  # NCCL_IB_GID_INDEX. auto = the IPv4-mapped RoCE v2
+                                    # GID from sysfs (::ffff:<rail-ip>, typically 3) --
+                                    # the ROUTABLE one (link-local fe80:: v2 GIDs are
+                                    # not). Set a number (e.g. 3) to pin explicitly.
     socketIfname: eth0              # NCCL_SOCKET_IFNAME (OOB bootstrap iface)
     disable: "0"                    # NCCL_IB_DISABLE
     debug: WARN                     # NCCL_DEBUG (INFO shows the transport + GID chosen)

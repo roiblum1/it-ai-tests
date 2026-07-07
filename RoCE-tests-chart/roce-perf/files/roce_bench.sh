@@ -312,9 +312,17 @@ EOF
       duration=$(echo "$flags" | sed -n 's/.*-D \([0-9]*\).*/\1/p')
       echo "$size,${duration:-NA},$peak,$avg,$msg_rate" >> "$csv"
     else
-      # Latency: -U prints raw per-sample microseconds (numeric-only lines).
+      # Latency: -U prints the raw per-sample microseconds. perftest may print
+      # them bare ("3.21") or index-prefixed ("1000  3.21"), often with leading
+      # whitespace -- so we can't anchor on the start of the line. Keep only lines
+      # whose every field is numeric with 1-2 fields (the raw samples), take the
+      # last field, and thereby skip the multi-column summary row and any headers.
       samples="$out_dir/${name}.unsorted.txt"
-      echo "$output" | grep -E '^[0-9]+(\.[0-9]+)?$' > "$samples"
+      echo "$output" | awk '
+        { ok = (NF >= 1 && NF <= 2)
+          for (i = 1; i <= NF; i++) if ($i !~ /^[0-9]+(\.[0-9]+)?$/) ok = 0
+          if (ok) print $NF
+        }' > "$samples"
       if [ -s "$samples" ]; then
         summarize_latency "$samples" > "$out_dir/${name}.json"
       else

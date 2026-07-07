@@ -25,6 +25,7 @@ OUT_DIR="./report"
 SERVER_POD="rdma-server"
 SCRIPT_PATH="/opt/roce/roce_bench.sh"
 NCCL_SCRIPT="/opt/roce/nccl_one_vs_many.sh"
+RAIL_ROUTES="/opt/roce/rail_routes.sh"
 PLOT_PATH="/opt/roce/plot_report.py"
 RESULTS_DIR="/results"
 REPORT_SUBDIR="report"
@@ -58,9 +59,6 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -z "$NAMESPACE" ] && usage
-
-# result-producing pods to gather for the report (NCCL launcher added with --nccl)
-GATHER_PODS=( "${CLIENTS[@]%%:*}" )
 
 oc_exec() { oc exec -n "$NAMESPACE" "$1" -- bash -c "$2"; }
 
@@ -117,10 +115,46 @@ done
 #     pods, build nccl-tests on both, then launch mpirun from the launcher.
 # ----------------------------------------------------------------------------
 if [ "$RUN_NCCL" = true ]; then
+  # The 8-GPU/8-rail NCCL pods can't schedule while the perftest pods hold GPUs and
+  # rail VFs -- they stay Pending. Free those resources now by deleting the perftest
+  # pods. Their run dirs live on the node's hostPath (results.hostPath, the default)
+  # and survive the pod deletion; the NCCL pods land on the same nodes and re-mount
+  # that same hostPath, so --report can still gather them below. (This needs a
+  # non-emptyDir backend: hostPath (default) or a shared PVC.)
+  log "NCCL: deleting perftest pods to free GPUs/rails ($SERVER_POD + clients; results persist on hostPath)..."
+  oc delete pod -n "$NAMESPACE" "$SERVER_POD" "${CLIENTS[@]%%:*}" \
+    --ignore-not-found --wait=true --timeout=120s || true
+
   log "NCCL: waiting for $NCCL_LAUNCHER and $NCCL_PEER (needs nccl.enabled=true)..."
   for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
     oc wait -n "$NAMESPACE" --for=condition=Ready "pod/$p" --timeout=300s
   done
+
+  # Multi-rail pods hold 8 VFs whose routes all point at the same fabric /24;
+  # without source routing, rail N's traffic may egress rail M's gateway (and
+  # ping between VF IPs fails). rail_routes.sh gives every rail its own table.
+  log "NCCL: applying per-rail source routing on both pods..."
+  for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
+    oc_exec "$p" "bash $RAIL_ROUTES"
+  done
+
+  # Same-rail reachability check, launcher -> peer, one ping per rail. Multus
+  # names the rails identically on both pods (net1..netN, annotation order), so
+  # matching by interface name pairs rail i with rail i. Warn-only.
+  log "NCCL: same-rail ping check ($NCCL_LAUNCHER -> $NCCL_PEER)..."
+  PEER_RAILS="$(oc_exec "$NCCL_PEER" \
+    "ip -br -4 addr show | awk '{sub(/@.*/, \"\", \$1)} \$1!=\"lo\" && \$1!~/^eth0/ {split(\$3,a,\"/\"); print \$1, a[1]}'")"
+  while read -r ifc peer_ip; do
+    [ -z "$ifc" ] && continue
+    local_ip="$(oc_exec "$NCCL_LAUNCHER" \
+      "ip -br -4 addr show dev $ifc 2>/dev/null | awk '{split(\$3,a,\"/\"); print a[1]; exit}'" | tr -d '[:space:]')"
+    [ -z "$local_ip" ] && { echo "  $ifc: no matching rail on the launcher, skipping"; continue; }
+    if oc_exec "$NCCL_LAUNCHER" "ping -c1 -W2 -I $local_ip $peer_ip >/dev/null 2>&1"; then
+      echo "  $ifc: $local_ip -> $peer_ip  OK"
+    else
+      echo "  WARN: $ifc: $local_ip -> $peer_ip  FAILED (rail down, or the fabric does not route this pair)"
+    fi
+  done <<< "$PEER_RAILS"
 
   log "NCCL: setting up passwordless SSH between the pods..."
   for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
@@ -142,8 +176,21 @@ if [ "$RUN_NCCL" = true ]; then
   [ -z "$PEER_IP" ] && { echo "ERROR: could not read $NCCL_PEER pod IP"; exit 1; }
   log "NCCL: launching from $NCCL_LAUNCHER against peer $PEER_IP..."
   oc_exec "$NCCL_LAUNCHER" "bash $NCCL_SCRIPT $PEER_IP nccl"
+fi
 
-  GATHER_PODS+=( "$NCCL_LAUNCHER" )
+# ----------------------------------------------------------------------------
+# Pick the report pod (where we gather + plot) and which pods to pull results
+# FROM. With --nccl the perftest pods are gone, but their hostPath run dirs are
+# still on the nodes; the two NCCL pods sit on those same nodes, so the launcher
+# already sees its node's run dirs and only needs the peer's pulled in. Without
+# --nccl, keep the original flow: gather the clients into the server.
+# ----------------------------------------------------------------------------
+if [ "$RUN_NCCL" = true ]; then
+  REPORT_POD="$NCCL_LAUNCHER"
+  GATHER_PODS=( "$NCCL_PEER" )
+else
+  REPORT_POD="$SERVER_POD"
+  GATHER_PODS=( "${CLIENTS[@]%%:*}" )
 fi
 
 # ----------------------------------------------------------------------------
@@ -156,24 +203,24 @@ fi
 # ----------------------------------------------------------------------------
 if [ "$MAKE_REPORT" = true ]; then
   for pod in "${GATHER_PODS[@]}"; do
-    log "Gathering results from $pod -> $SERVER_POD ..."
+    log "Gathering results from $pod -> $REPORT_POD ..."
     oc exec -n "$NAMESPACE" "$pod" -- \
       tar -C "$RESULTS_DIR" --exclude="./$REPORT_SUBDIR" -cf - . \
-      | oc exec -i -n "$NAMESPACE" "$SERVER_POD" -- tar -C "$RESULTS_DIR" -xf -
+      | oc exec -i -n "$NAMESPACE" "$REPORT_POD" -- tar -C "$RESULTS_DIR" -xf -
   done
 
-  runs=$(oc_exec "$SERVER_POD" "ls $RESULTS_DIR/*/setup.json 2>/dev/null | wc -l" | tr -d '[:space:]')
+  runs=$(oc_exec "$REPORT_POD" "ls $RESULTS_DIR/*/setup.json 2>/dev/null | wc -l" | tr -d '[:space:]')
   if [ "${runs:-0}" -eq 0 ]; then
     echo "ERROR: no run directories found after gathering. Did the clients run?"
     exit 1
   fi
 
-  log "Generating report on $SERVER_POD..."
-  oc_exec "$SERVER_POD" "python3 $PLOT_PATH $RESULTS_DIR $REPORT_SUBDIR"
+  log "Generating report on $REPORT_POD..."
+  oc_exec "$REPORT_POD" "python3 $PLOT_PATH $RESULTS_DIR $REPORT_SUBDIR"
   # kubectl/oc cp creates OUT_DIR from the source dir's contents (parent must exist).
   mkdir -p "$(dirname "$OUT_DIR")"
   log "Copying report to $OUT_DIR ..."
-  oc cp -n "$NAMESPACE" "$SERVER_POD:$RESULTS_DIR/$REPORT_SUBDIR" "$OUT_DIR"
+  oc cp -n "$NAMESPACE" "$REPORT_POD:$RESULTS_DIR/$REPORT_SUBDIR" "$OUT_DIR"
   echo "Report at: $OUT_DIR/report.html"
 fi
 

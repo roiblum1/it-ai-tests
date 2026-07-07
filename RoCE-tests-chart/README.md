@@ -75,8 +75,12 @@ oc adm policy add-scc-to-user privileged -z default -n <ns>
 # 3. drive the whole run from your machine: discovers the server IP, runs both
 #    clients, builds the report, and copies report.html to ./report.
 #    add --nccl to also run the NCCL one-vs-many test (needs nccl.enabled=true).
+#    NOTE: --nccl DELETES the perftest pods first, to free the GPUs/rails the
+#    8-GPU NCCL pods need (they'd otherwise stay Pending). The perftest results
+#    stay on the node hostPath and are still folded into the report, so this
+#    needs results.hostPath (default) or a shared PVC -- NOT emptyDir.
 ./run_suite.sh -n <ns> --report            # perftest only
-./run_suite.sh -n <ns> --nccl --report     # perftest + NCCL
+./run_suite.sh -n <ns> --nccl --report     # perftest, then NCCL (perftest pods removed)
 
 # 4. open the report
 open ./report/report.html
@@ -134,3 +138,17 @@ print the exact `oc exec` steps: get the server IP, run `roce_bench.sh client au
   `run_suite.sh --report` (it gathers both clients' results into the server first).
   Running `plot_report.py` directly only sees one node's results unless
   `results.pvcName` is a shared RWX PVC.
+- **No ping between VF IPs on the multi-rail (NCCL) pods** — with 8 VFs whose
+  routes all point at the same fabric supernet, the main routing table picks ONE
+  gateway for everything, so rail N's traffic egresses rail M and replies are
+  dropped by `rp_filter`. `run_suite.sh --nccl` fixes this automatically by running
+  [rail_routes.sh](roce-perf/files/rail_routes.sh) on both pods (per-rail source
+  routing: one table + `ip rule from <rail-ip>` per VF, loose rp_filter). To check
+  manually: `oc exec <pod> -- bash /opt/roce/rail_routes.sh`, then always pin the
+  source — `ping -I <rail-ip> <peer-rail-ip>` (a bare `ping` still uses the main
+  table). Single-VF perftest pods are unaffected (one route, no ambiguity).
+- **NCCL falls back to sockets / cross-node QPs fail** — usually the GID index:
+  a routed RoCEv2 fabric needs the **IPv4-mapped** RoCE v2 GID (`::ffff:<rail-ip>`,
+  typically index 3), not the link-local one. `nccl.ib.gidIndex: auto` now detects
+  exactly that; pin it (e.g. `3`) if your fabric differs. Set `nccl.ib.debug: INFO`
+  to see the transport + GID NCCL actually picks.

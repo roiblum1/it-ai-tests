@@ -58,7 +58,11 @@ Manual equivalent, if you prefer step by step:
 
 NCCL one-HCA-vs-all (1.7) is ENABLED: pods nccl-launcher ({{ (index .Values.nccl.nodes 0).host }})
 and nccl-peer ({{ (index .Values.nccl.nodes 1).host }}), each on rails [{{ join " " .Values.nccl.rails }}] + {{ .Values.nccl.gpus }} GPUs.
-Drive it (sets up SSH, builds nccl-tests on both, runs mpirun):
+These request many GPUs/rails, so they stay Pending until the perftest pods free
+those resources -- run_suite.sh --nccl DELETES the perftest pods first (their
+hostPath results survive and are still reported). Drive it (deletes perftest pods,
+applies per-rail source routing + a same-rail ping check, sets up SSH, builds
+nccl-tests on both, runs mpirun):
    ../run_suite.sh -n {{ .Release.Namespace }} --nccl --report
 {{- end }}
 
