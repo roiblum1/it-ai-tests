@@ -152,3 +152,16 @@ print the exact `oc exec` steps: get the server IP, run `roce_bench.sh client au
   typically index 3), not the link-local one. `nccl.ib.gidIndex: auto` now detects
   exactly that; pin it (e.g. `3`) if your fabric differs. Set `nccl.ib.debug: INFO`
   to see the transport + GID NCCL actually picks.
+- **NCCL `ibv_modify_qp failed ... errno 19 (No such device)`** — NCCL was handed
+  an HCA that isn't a routable pod rail: either a device that isn't one of the
+  pod's IP-bearing VFs (a privileged pod can see host RDMA devices in sysfs), or
+  a rail the fabric doesn't route, so the IPv4-mapped GID index doesn't resolve on
+  it. Fixed on two levels: HCA auto-detect maps the pod's **rail netdevs** to their
+  RDMA devices (not a bare `/sys/class/infiniband` listing), and `run_suite.sh
+  --nccl` restricts `NCCL_IB_HCA` to the rails that **passed the same-rail ping
+  check** (aborting if none pass — that's a fabric problem, not a pod problem).
+- **NCCL crashes with "No space left on device" / shared-memory allocation
+  failure** — Kubernetes gives pods a **64Mi `/dev/shm`** by default and NCCL's
+  host buffers exhaust it. The chart mounts a memory-backed `/dev/shm` in the NCCL
+  pods (`nccl.shm.size`, default `8Gi`). As a last resort `nccl.shm.disable: "1"`
+  sets `NCCL_SHM_DISABLE=1` (skips the SHM transport entirely).

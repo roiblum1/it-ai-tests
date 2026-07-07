@@ -95,6 +95,8 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
   value: {{ .Values.nccl.ib.disable | quote }}
 - name: NCCL_DEBUG_CFG
   value: {{ .Values.nccl.ib.debug | quote }}
+- name: NCCL_SHM_DISABLE_CFG
+  value: {{ .Values.nccl.shm.disable | quote }}
 {{- end -}}
 
 {{/*

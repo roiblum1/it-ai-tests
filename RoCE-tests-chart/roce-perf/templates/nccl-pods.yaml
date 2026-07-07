@@ -59,7 +59,15 @@ spec:
           mountPath: {{ $root.Values.script.mountPath }}
         - name: results
           mountPath: {{ $root.Values.results.mountPath }}
+        - name: dshm
+          mountPath: /dev/shm
   volumes:
+    # NCCL host buffers live in /dev/shm; the k8s default (64Mi) is far too
+    # small and the run dies with "No space left on device". Memory-backed.
+    - name: dshm
+      emptyDir:
+        medium: Memory
+        sizeLimit: {{ $n.shm.size }}
     {{- include "roce-perf.volumes" $root | nindent 4 }}
 {{- end }}
 {{- end }}

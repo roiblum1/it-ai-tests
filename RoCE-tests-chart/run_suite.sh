@@ -140,10 +140,13 @@ if [ "$RUN_NCCL" = true ]; then
 
   # Same-rail reachability check, launcher -> peer, one ping per rail. Multus
   # names the rails identically on both pods (net1..netN, annotation order), so
-  # matching by interface name pairs rail i with rail i. Warn-only.
+  # matching by interface name pairs rail i with rail i. The rails that PASS
+  # become NCCL's HCA list: a QP on a non-routing rail dies in ibv_modify_qp
+  # with errno 19 (No such device), so we must not hand those to NCCL.
   log "NCCL: same-rail ping check ($NCCL_LAUNCHER -> $NCCL_PEER)..."
   PEER_RAILS="$(oc_exec "$NCCL_PEER" \
     "ip -br -4 addr show | awk '{sub(/@.*/, \"\", \$1)} \$1!=\"lo\" && \$1!~/^eth0/ {split(\$3,a,\"/\"); print \$1, a[1]}'")"
+  WORKING_IFCS=()
   while read -r ifc peer_ip; do
     [ -z "$ifc" ] && continue
     local_ip="$(oc_exec "$NCCL_LAUNCHER" \
@@ -151,10 +154,30 @@ if [ "$RUN_NCCL" = true ]; then
     [ -z "$local_ip" ] && { echo "  $ifc: no matching rail on the launcher, skipping"; continue; }
     if oc_exec "$NCCL_LAUNCHER" "ping -c1 -W2 -I $local_ip $peer_ip >/dev/null 2>&1"; then
       echo "  $ifc: $local_ip -> $peer_ip  OK"
+      WORKING_IFCS+=("$ifc")
     else
       echo "  WARN: $ifc: $local_ip -> $peer_ip  FAILED (rail down, or the fabric does not route this pair)"
     fi
   done <<< "$PEER_RAILS"
+
+  if [ "${#WORKING_IFCS[@]}" -eq 0 ]; then
+    echo "ERROR: no rail passed the same-rail ping check -- the fabric is not routing"
+    echo "       any launcher<->peer rail pair, so NCCL cannot run. Fix the leaf/spine"
+    echo "       routing (or the NAD gateways) and re-run."
+    exit 1
+  fi
+
+  # Map each working rail netdev to its RDMA device on the launcher (the nodes
+  # are symmetric, so the peer resolves the same names). This -- not a blind
+  # /sys/class/infiniband listing -- is what NCCL_IB_HCA will be restricted to.
+  NCCL_HCAS=""
+  for ifc in "${WORKING_IFCS[@]}"; do
+    dev="$(oc_exec "$NCCL_LAUNCHER" \
+      "ls /sys/class/net/$ifc/device/infiniband 2>/dev/null | head -n1" | tr -d '[:space:]')"
+    [ -n "$dev" ] && NCCL_HCAS="${NCCL_HCAS:+$NCCL_HCAS,}$dev"
+  done
+  [ -z "$NCCL_HCAS" ] && { echo "ERROR: could not map any working rail to an RDMA device"; exit 1; }
+  echo "NCCL restricted to routing rails: $NCCL_HCAS (${#WORKING_IFCS[@]} of the attached rails)"
 
   log "NCCL: setting up passwordless SSH between the pods..."
   for p in "$NCCL_LAUNCHER" "$NCCL_PEER"; do
@@ -174,8 +197,9 @@ if [ "$RUN_NCCL" = true ]; then
 
   PEER_IP="$(oc get pod -n "$NAMESPACE" "$NCCL_PEER" -o jsonpath='{.status.podIP}')"
   [ -z "$PEER_IP" ] && { echo "ERROR: could not read $NCCL_PEER pod IP"; exit 1; }
-  log "NCCL: launching from $NCCL_LAUNCHER against peer $PEER_IP..."
-  oc_exec "$NCCL_LAUNCHER" "bash $NCCL_SCRIPT $PEER_IP nccl"
+  log "NCCL: launching from $NCCL_LAUNCHER against peer $PEER_IP (HCAs: $NCCL_HCAS)..."
+  oc_exec "$NCCL_LAUNCHER" \
+    "NCCL_HCA_ONE=${NCCL_HCAS%%,*} NCCL_HCA_ALL=$NCCL_HCAS bash $NCCL_SCRIPT $PEER_IP nccl"
 fi
 
 # ----------------------------------------------------------------------------

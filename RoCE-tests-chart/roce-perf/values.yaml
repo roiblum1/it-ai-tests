@@ -143,6 +143,14 @@ nccl:
     factor: "2"                     # -f
   hcaOne: auto                      # NCCL_IB_HCA "one rail"  (auto = first device)
   hcaAll: auto                      # NCCL_IB_HCA "all rails" (auto = all, comma-joined)
+  # NCCL allocates host-side buffers in /dev/shm -- and Kubernetes gives pods a
+  # 64Mi /dev/shm by default, which all_reduce_perf exhausts ("No space left on
+  # device"). The chart mounts a memory-backed /dev/shm of shm.size in the NCCL
+  # pods. shm.disable: "1" additionally sets NCCL_SHM_DISABLE=1 (skips the SHM
+  # transport entirely) -- an escape hatch, not needed once /dev/shm is sized.
+  shm:
+    size: 8Gi
+    disable: "0"
   # RoCE tuning passed to NCCL via `mpirun -x`. Without a valid GID index / socket
   # iface NCCL falls back to the CPU/socket transport.
   ib:

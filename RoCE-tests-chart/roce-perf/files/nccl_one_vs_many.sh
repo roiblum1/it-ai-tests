@@ -32,6 +32,7 @@ GID_CFG="${NCCL_IB_GID_INDEX_CFG:-auto}"
 SOCK_IFNAME="${NCCL_SOCKET_IFNAME_CFG:-eth0}"
 IB_DISABLE="${NCCL_IB_DISABLE_CFG:-0}"
 DEBUG="${NCCL_DEBUG_CFG:-WARN}"
+SHM_DISABLE="${NCCL_SHM_DISABLE_CFG:-0}"   # "1" = skip the SHM transport (escape hatch)
 
 NCCL_TESTS_DIR="${NCCL_TESTS_DIR:-/opt/nccl-tests}"
 
@@ -56,8 +57,19 @@ build_nccl_tests() {
 build_nccl_tests
 [ "$PEER" = build ] && { echo "build-only: nccl-tests ready at $NCCL_TESTS_DIR/build"; exit 0; }
 
-# HCA list -- gather the pod's actual RDMA devices instead of hardcoding rails.
-detect_hcas() { ls /sys/class/infiniband 2>/dev/null | sort | paste -sd, - ; }
+# HCA list -- derive from THIS POD's rail netdevs (the interfaces that hold an
+# IPv4), NOT a bare /sys/class/infiniband listing: a privileged pod can see RDMA
+# devices that are not its rails (host PFs / other VFs), and an IP-less device
+# has no IPv4-mapped GID -- NCCL's ibv_modify_qp on those fails with errno 19
+# (No such device). Each rail netdev maps to its RDMA device via sysfs.
+detect_hcas() {
+  local ifc dev
+  for ifc in $(ip -br -4 addr show 2>/dev/null \
+                 | awk '{sub(/@.*/, "", $1)} $1!="lo" && $1!~/^eth0/ {print $1}'); do
+    dev="$(ls /sys/class/net/"$ifc"/device/infiniband 2>/dev/null | head -n1)"
+    [ -n "$dev" ] && echo "$dev"
+  done | awk '!seen[$0]++' | paste -sd, -
+}
 HCA_ALL="${NCCL_HCA_ALL:-auto}"; HCA_ONE="${NCCL_HCA_ONE:-auto}"
 if [ -z "$HCA_ALL" ] || [ "$HCA_ALL" = auto ]; then HCA_ALL="$(detect_hcas)"; fi
 if [ -z "$HCA_ONE" ] || [ "$HCA_ONE" = auto ]; then HCA_ONE="${HCA_ALL%%,*}"; fi
@@ -106,6 +118,26 @@ to_bytes(){ echo "$1" | awk 'BEGIN{IGNORECASE=1}
 NSIZES="$(awk -v b="$(to_bytes "$BEGIN")" -v e="$(to_bytes "$END")" -v f="$FACTOR" \
   'BEGIN{ n=0; for (s=b; s<=e; s*=f) n++; print (n>0?n:1) }')"
 
+# sshd-spawned ranks do NOT inherit the image's baked-in ENV, so a remote rank can
+# die with "error while loading shared libraries: libcudart.so.12" (or libnccl.so.2)
+# even though the launcher is fine. Resolve the real dirs of those libs and forward
+# an EXPLICIT LD_LIBRARY_PATH to every rank -- belt-and-suspenders over -x
+# LD_LIBRARY_PATH, and covering both CUDA layouts (lib64 and targets/<arch>/lib).
+resolve_lib_dirs() {
+  local dirs="" lib p d
+  for lib in libcudart.so libnccl.so; do
+    for p in $(ldconfig -p 2>/dev/null | awk -v n="$lib" 'index($1,n){print $NF}'); do
+      dirs="$dirs:$(dirname "$p")"
+    done
+  done
+  for d in /usr/local/cuda/lib64 /usr/local/cuda/targets/*/lib /usr/lib/x86_64-linux-gnu; do
+    [ -d "$d" ] && dirs="$dirs:$d"
+  done
+  echo "${dirs#:}" | tr ':' '\n' | awk 'NF && !seen[$0]++' | paste -sd: -
+}
+MPI_LD_LIBRARY_PATH="$(resolve_lib_dirs):${LD_LIBRARY_PATH:-}"
+BIN="$NCCL_TESTS_DIR/build/$COLLECTIVE"   # absolute -- remote ranks may lack it on PATH
+
 # mpirun is only the bootstrap here (ssh-launch + a small OOB/BTL handshake); NCCL
 # itself moves the data over the RoCE HCAs. The pods are multi-homed (eth0 pod-SDN
 # + 8 RoCE rails), so left to itself OpenMPI may advertise an unroutable rail IP
@@ -124,10 +156,11 @@ run_nccl(){ # hca outfile tag
     -x NCCL_IB_HCA="$hca" \
     -x NCCL_DEBUG="$DEBUG" \
     -x NCCL_IB_DISABLE="$IB_DISABLE" \
+    -x NCCL_SHM_DISABLE="$SHM_DISABLE" \
     -x NCCL_SOCKET_IFNAME="$SOCK_IFNAME" \
     ${GID_INDEX:+-x NCCL_IB_GID_INDEX="$GID_INDEX"} \
-    -x LD_LIBRARY_PATH -x PATH \
-    "$COLLECTIVE" -b "$BEGIN" -e "$END" -f "$FACTOR" -g "$GPUS" 2>&1 \
+    -x LD_LIBRARY_PATH="$MPI_LD_LIBRARY_PATH" -x PATH \
+    "$BIN" -b "$BEGIN" -e "$END" -f "$FACTOR" -g "$GPUS" 2>&1 \
     | tee "$out" \
     | awk -v total="$NSIZES" -v tag="$tag" '
         # echo NCCL/MPI diagnostics through; add a compact per-size progress line.
