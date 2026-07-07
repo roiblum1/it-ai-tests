@@ -99,9 +99,13 @@ All in [roce-perf/values.yaml](roce-perf/values.yaml):
 - `gpudirect.{enabled,gpuIndex}` — re-run the matrix with `--use_cuda` (per-pod GPU is `scenario.*.gpuIndex`; `gpudirect.gpuIndex` is only the fallback). `gpudirect.skip` lists tests to omit from the CUDA pass only (default `[send_lat]`, which still runs on the NIC)
 - `nccl.*` — one-HCA-vs-all across 2 nodes (gated off by default). `nccl.enabled`
   stamps a `nccl-launcher`/`nccl-peer` pair (each on `nccl.nodes[].host`, attached to
-  `nccl.rails` + `nccl.gpus` GPUs). `nccl.ib.*` is the RoCE tuning (GID index, socket
-  iface, IB disable, debug) passed to NCCL. Run it with `run_suite.sh --nccl` (it sets
-  up SSH, builds nccl-tests on both, launches `mpirun`).
+  `nccl.rails` + `nccl.gpus` GPUs). The launch is **one rank per GPU** (`-np =
+  2×gpus`), the default sweep is a heavy `128M..8G`, and `nccl.ib.*` carries the RoCE
+  tuning (GID index, socket iface, **traffic class**, **QPs/connection**, **PXN**,
+  IB disable, debug). Run it with `run_suite.sh --nccl` (SSH + rail routing + builds
+  nccl-tests on both + `mpirun`). **New to NCCL here? Read [NCCL-DEEP-DIVE.md](NCCL-DEEP-DIVE.md)**
+  — what AllReduce measures, busbw vs algbw, what one-HCA-vs-all really compares, and
+  why the same run reports 11 vs 174 GB/s.
 - `numactl.{enabled,node}` — pin perftest to the rail's socket (`node: auto` reads the NIC's `numa_node` from sysfs per pod). For the bind to take real cores, set `resources.{cpu,memory}` (makes the pod Guaranteed QoS) + run the kubelet topology manager with `single-numa-node`; otherwise it warns and runs unpinned.
 - `report.enabled` — run the plot Job in-cluster instead of via `run_suite.sh --report`
 
@@ -115,10 +119,17 @@ Each client writes a per-run directory to its node-local results dir (`run_suite
   setup.json                           # what was tested + environment
   bw/{read,write}_bw.csv               # size,duration,bw_peak,bw_avg,msg_rate
   lat/<test>.unsorted.txt + .json      # raw -U samples + min/avg/p50/p99/p999/max
+  lat/<test>.raw.txt                   # FULL perftest stdout (plot falls back to this)
+  nccl/{one_hca,all_hca}.txt + .json   # full nccl-tests tables + one/all busbw
   gpudirect/{bw,lat}/...               # same tree when gpudirect.enabled
   full.log
-/results/report/report.html            # graphs: BW bars, latency over-time (peaks),
-                                       #   CDFs, histograms, percentile table, NCCL bar
+/results/report/
+  report.html                          # BW bars + tables, latency over-time (peaks),
+                                       #   CDFs, histograms, percentiles, NCCL busbw
+                                       #   curve (per size) + one-vs-all bar
+  *.png                                # every chart
+  data/{bw,lat,nccl}_summary.csv       # ALL numbers, flat CSVs (external analysis)
+  data/nccl_curve.csv                  # per-size algbw+busbw, one-HCA and all-HCA
 ```
 
 ## Manual run (without the driver)

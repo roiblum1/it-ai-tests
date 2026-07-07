@@ -104,16 +104,10 @@ def plot_lat_cdf(runs, test, subtree, out_dir):
     plt.figure(figsize=(8, 4.5))
     for r in runs:
         sub = (subtree + "/") if subtree else ""
-        f = os.path.join(r["path"], sub + "lat", test + ".unsorted.txt")
-        if not os.path.exists(f) or os.path.getsize(f) == 0:
+        s = _load_samples(os.path.join(r["path"], sub + "lat", test + ".unsorted.txt"))
+        if s is None:
             continue
-        try:
-            samples = np.loadtxt(f)
-        except ValueError:
-            continue
-        samples = np.sort(np.atleast_1d(samples))
-        if samples.size == 0:
-            continue
+        samples = np.sort(s)
         cdf = np.linspace(0, 1, samples.size, endpoint=True)
         plt.plot(samples, cdf, label=r["label"])
         plotted = True
@@ -128,15 +122,47 @@ def plot_lat_cdf(runs, test, subtree, out_dir):
     return fname
 
 
-def _load_samples(path):
-    """Raw -U samples as a 1-D array, or None if missing/empty/unparseable."""
-    if not os.path.exists(path) or os.path.getsize(path) == 0:
-        return None
+def _isnum(tok):
     try:
-        s = np.atleast_1d(np.loadtxt(path))
+        float(tok)
+        return True
     except ValueError:
+        return False
+
+
+def _numeric_from_raw(path):
+    """Re-parse raw perftest stdout: keep 1-2-field all-numeric lines' last field.
+    Same filter roce_bench.sh applies, so we recover samples even if the in-pod
+    filter ran with an older build / different -U format."""
+    vals = []
+    try:
+        with open(path) as fh:
+            for line in fh:
+                toks = line.split()
+                if 1 <= len(toks) <= 2 and all(_isnum(t) for t in toks):
+                    vals.append(float(toks[-1]))
+    except OSError:
         return None
-    return s if s.size else None
+    return np.array(vals) if vals else None
+
+
+def _load_samples(path):
+    """Raw -U samples as a 1-D array, or None. Try the filtered .unsorted.txt
+    first, then fall back to re-parsing the sibling .raw.txt (full stdout)."""
+    if os.path.exists(path) and os.path.getsize(path) > 0:
+        try:
+            s = np.atleast_1d(np.loadtxt(path))
+            if s.size > 1:
+                return s
+        except ValueError:
+            pass
+    if path.endswith(".unsorted.txt"):
+        raw = path[: -len(".unsorted.txt")] + ".raw.txt"
+        if os.path.exists(raw):
+            s = _numeric_from_raw(raw)
+            if s is not None and s.size:
+                return s
+    return None
 
 
 def _peak_downsample(y, target=5000):
@@ -248,6 +274,137 @@ def plot_nccl(runs, out_dir):
     return fname
 
 
+def parse_nccl_table(path):
+    """Parse an nccl-tests stdout table -> [{size, algbw, busbw}] per message size.
+    The last 8 columns are always [time algbw busbw #wrong] x2 (out-of-place then
+    in-place), regardless of the collective's leading columns (redop/root), so the
+    out-of-place busbw is at len-6 and algbw at len-7. We report out-of-place."""
+    rows = []
+    if not os.path.exists(path):
+        return rows
+    try:
+        with open(path) as fh:
+            for line in fh:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                f = s.split()
+                if len(f) < 8 or not f[0].isdigit():
+                    continue
+                try:
+                    rows.append({"size": int(f[0]),
+                                 "algbw": float(f[len(f) - 7]),
+                                 "busbw": float(f[len(f) - 6])})
+                except (ValueError, IndexError):
+                    continue
+    except OSError:
+        return []
+    return rows
+
+
+def plot_nccl_curve(runs, out_dir):
+    """busbw vs message size (log-x), one-HCA (dashed) vs all-HCA (solid) per env.
+    Shows the ramp to saturation the single Avg-busbw number hides."""
+    series = []  # (label, sizes, busbw, is_one)
+    for r in runs:
+        for mode, fn in (("one-HCA", "one_hca.txt"), ("all-HCA", "all_hca.txt")):
+            rows = parse_nccl_table(os.path.join(r["path"], "nccl", fn))
+            if rows:
+                series.append((f"{r['label']} {mode}",
+                               [x["size"] for x in rows],
+                               [x["busbw"] for x in rows], mode == "one-HCA"))
+    if not series:
+        return None
+    plt.figure(figsize=(9, 5))
+    for lab, sizes, busbw, is_one in series:
+        plt.plot(sizes, busbw, "--" if is_one else "-", marker="o", ms=3, label=lab)
+    plt.xscale("log", base=2)
+    plt.title("NCCL all_reduce busbw vs message size (dashed = one HCA, solid = all)")
+    plt.xlabel("message size (bytes)"); plt.ylabel("busbw (GB/s)")
+    plt.legend(fontsize=8); plt.grid(alpha=0.3)
+    fname = "nccl_busbw_curve.png"
+    plt.tight_layout(); plt.savefig(os.path.join(out_dir, fname), dpi=110); plt.close()
+    return fname
+
+
+def _load_json(path):
+    try:
+        with open(path) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def _read_csv_rows(path):
+    try:
+        with open(path) as fh:
+            return list(csv.DictReader(fh))
+    except OSError:
+        return []
+
+
+def export_all_data(runs, out_dir):
+    """Write every test's numbers into flat CSVs under <report>/data/ so nothing
+    is trapped in per-pod run dirs -- one row per (env, subtree, test, size)."""
+    ddir = os.path.join(out_dir, "data")
+    os.makedirs(ddir, exist_ok=True)
+    written = []
+
+    with open(os.path.join(ddir, "bw_summary.csv"), "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["env", "subtree", "test", "size_bytes", "duration_s",
+                    "bw_peak_gbps", "bw_avg_gbps", "msg_rate_mpps"])
+        for r in runs:
+            for subtree in SUBTREES:
+                sub = (subtree + "/") if subtree else ""
+                for test in BW_TESTS:
+                    for row in _read_csv_rows(os.path.join(r["path"], sub + "bw", test + ".csv")):
+                        w.writerow([r["label"], subtree or "nic", test,
+                                    row.get("size_bytes", ""), row.get("duration_s", ""),
+                                    row.get("bw_peak_gbps", ""), row.get("bw_avg_gbps", ""),
+                                    row.get("msg_rate_mpps", "")])
+    written.append("bw_summary.csv")
+
+    with open(os.path.join(ddir, "lat_summary.csv"), "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["env", "subtree", "test", "count", "min", "avg",
+                    "p50", "p99", "p999", "max"])
+        for r in runs:
+            for subtree in SUBTREES:
+                sub = (subtree + "/") if subtree else ""
+                for test in LAT_TESTS:
+                    d = _load_json(os.path.join(r["path"], sub + "lat", test + ".json"))
+                    if d:
+                        w.writerow([r["label"], subtree or "nic", test] +
+                                   [d.get(k, "") for k in ("count", "min", "avg",
+                                                           "p50", "p99", "p999", "max")])
+    written.append("lat_summary.csv")
+
+    with open(os.path.join(ddir, "nccl_summary.csv"), "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["env", "collective", "one_hca", "one_busbw_gbps",
+                    "all_hca", "all_busbw_gbps"])
+        for r in runs:
+            d = _load_json(os.path.join(r["path"], "nccl", "nccl.json"))
+            if d:
+                w.writerow([r["label"], d.get("collective", ""),
+                            d.get("one", {}).get("hca", ""), d.get("one", {}).get("busbw", ""),
+                            d.get("all", {}).get("hca", ""), d.get("all", {}).get("busbw", "")])
+    written.append("nccl_summary.csv")
+
+    with open(os.path.join(ddir, "nccl_curve.csv"), "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["env", "mode", "size_bytes", "algbw_gbps", "busbw_gbps"])
+        for r in runs:
+            for mode, fn in (("one-HCA", "one_hca.txt"), ("all-HCA", "all_hca.txt")):
+                for x in parse_nccl_table(os.path.join(r["path"], "nccl", fn)):
+                    w.writerow([r["label"], mode, x["size"], x["algbw"], x["busbw"]])
+    written.append("nccl_curve.csv")
+
+    print(f"exported {len(written)} data file(s) -> {os.path.join(out_dir, 'data')}")
+    return written
+
+
 def human_size(n):
     for unit in ("B", "K", "M", "G"):
         if n < 1024:
@@ -303,6 +460,21 @@ def main():
             img = plot_bw(runs, test, subtree, out_dir)
             if img:
                 html.append(f"<img src='{img}' alt='{test}'>")
+            # Full BW table: peak + avg + message rate per env/size (not just the
+            # avg the bar chart shows), so every number is visible in the report.
+            sub = (subtree + "/") if subtree else ""
+            btbl = [(r["label"], row) for r in runs
+                    for row in _read_csv_rows(os.path.join(r["path"], sub + "bw", test + ".csv"))]
+            if btbl:
+                html.append(f"<p><b>{test}</b> — Gb/s peak/avg, Mpps</p><table><tr>"
+                            "<th>env</th><th>size</th><th>dur(s)</th><th>peak</th>"
+                            "<th>avg</th><th>msg rate</th></tr>")
+                for lab, row in btbl:
+                    html.append("<tr>" + f"<td>{html_escape(lab)}</td>" + "".join(
+                        f"<td>{html_escape(row.get(k, 'NA'))}</td>" for k in (
+                            "size_bytes", "duration_s", "bw_peak_gbps",
+                            "bw_avg_gbps", "msg_rate_mpps")) + "</tr>")
+                html.append("</table>")
 
         html.append("<h3>Latency (over-time peaks, CDF, histogram, percentiles)</h3>")
         for test in LAT_TESTS:
@@ -322,10 +494,25 @@ def main():
                 html.append("</table>")
 
     # ---- NCCL ----------------------------------------------------------------
-    nccl_img = plot_nccl(runs, out_dir)
-    if nccl_img:
-        html.append("<h2>NCCL one-HCA-vs-all</h2>")
-        html.append(f"<img src='{nccl_img}' alt='nccl'>")
+    nccl_bar = plot_nccl(runs, out_dir)
+    nccl_curve = plot_nccl_curve(runs, out_dir)
+    if nccl_bar or nccl_curve:
+        html.append("<h2>NCCL all_reduce (one-HCA vs all-HCA)</h2>")
+        html.append("<p>Per-size busbw curve (does adding rails scale?) + the "
+                    "average-busbw bar. See <a href='../../NCCL-DEEP-DIVE.md'>"
+                    "NCCL-DEEP-DIVE.md</a> for how to read these.</p>")
+        if nccl_curve:
+            html.append(f"<img src='{nccl_curve}' alt='nccl busbw curve'>")
+        if nccl_bar:
+            html.append(f"<img src='{nccl_bar}' alt='nccl one vs all'>")
+
+    # ---- data exports (every raw number, flat CSVs) --------------------------
+    exported = export_all_data(runs, out_dir)
+    if exported:
+        html.append("<h2>Data exports</h2><p>All results as flat CSVs:</p><ul>")
+        for f in exported:
+            html.append(f"<li><a href='data/{f}'>{html_escape(f)}</a></li>")
+        html.append("</ul>")
 
     html.append("</body></html>")
     report = os.path.join(out_dir, "report.html")

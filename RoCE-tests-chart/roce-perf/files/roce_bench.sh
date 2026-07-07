@@ -317,16 +317,27 @@ EOF
       # whitespace -- so we can't anchor on the start of the line. Keep only lines
       # whose every field is numeric with 1-2 fields (the raw samples), take the
       # last field, and thereby skip the multi-column summary row and any headers.
+      # ALWAYS keep the full stdout in .raw.txt: it's what the over-time / histogram
+      # plots need, and if the filter ever misses this build's -U format it's the
+      # ground truth to re-parse from (the plotter falls back to it).
+      raw="$out_dir/${name}.raw.txt"
+      printf '%s\n' "$output" > "$raw"
       samples="$out_dir/${name}.unsorted.txt"
-      echo "$output" | awk '
+      awk '
         { ok = (NF >= 1 && NF <= 2)
           for (i = 1; i <= NF; i++) if ($i !~ /^[0-9]+(\.[0-9]+)?$/) ok = 0
           if (ok) print $NF
-        }' > "$samples"
-      if [ -s "$samples" ]; then
+        }' "$raw" > "$samples"
+      n_samples=$(wc -l < "$samples" | tr -d '[:space:]')
+      echo "captured $n_samples raw latency samples -> ${name}.unsorted.txt"
+      if [ "${n_samples:-0}" -gt 1 ]; then
         summarize_latency "$samples" > "$out_dir/${name}.json"
       else
-        # No raw samples (-U disabled): fall back to perftest's own summary row.
+        # No usable raw samples (-U disabled or an unrecognised format): fall back
+        # to perftest's own summary row for the percentile table. The over-time /
+        # histogram plots need raw samples, so they will be skipped for this test
+        # -- inspect ${name}.raw.txt to see what perftest actually printed.
+        echo "WARN: <=1 raw sample for $name; over-time/histogram plots need -U raw output (see ${name}.raw.txt)"
         echo "$output" | awk 'NF >= 9 && $1 ~ /^[0-9]+$/ {
           printf "{\"count\":%s,\"min\":%s,\"avg\":%s,\"p50\":\"NA\",\"p99\":%s,\"p999\":%s,\"max\":%s}\n", $2, $3, $6, $8, $9, $4 }' \
           > "$out_dir/${name}.json"

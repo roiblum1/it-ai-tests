@@ -33,6 +33,10 @@ SOCK_IFNAME="${NCCL_SOCKET_IFNAME_CFG:-eth0}"
 IB_DISABLE="${NCCL_IB_DISABLE_CFG:-0}"
 DEBUG="${NCCL_DEBUG_CFG:-WARN}"
 SHM_DISABLE="${NCCL_SHM_DISABLE_CFG:-0}"   # "1" = skip the SHM transport (escape hatch)
+# Throughput tuning (empty = NCCL default; forwarded via -x only when set).
+IB_TC="${NCCL_IB_TC_CFG:-}"                 # RoCE traffic class / lossless lane
+IB_QPS="${NCCL_IB_QPS_CFG:-}"               # parallel QPs per connection
+PXN_DISABLE="${NCCL_PXN_DISABLE_CFG:-}"     # 0 = keep PXN rail-optimised routing
 
 NCCL_TESTS_DIR="${NCCL_TESTS_DIR:-/opt/nccl-tests}"
 
@@ -118,17 +122,23 @@ to_bytes(){ echo "$1" | awk 'BEGIN{IGNORECASE=1}
 NSIZES="$(awk -v b="$(to_bytes "$BEGIN")" -v e="$(to_bytes "$END")" -v f="$FACTOR" \
   'BEGIN{ n=0; for (s=b; s<=e; s*=f) n++; print (n>0?n:1) }')"
 
+# Launch layout: ONE RANK PER GPU (-np = GPUS per node * 2 nodes, -g 1). This is
+# the layout that scales on this fabric -- each GPU-rank drives its own rail, vs
+# one fat process per node that under-uses the rails. Slots = GPUS on each host.
+#
 # mpirun is only the bootstrap here (ssh-launch + a small OOB/BTL handshake); NCCL
 # itself moves the data over the RoCE HCAs. The pods are multi-homed (eth0 pod-SDN
-# + 8 RoCE rails), so left to itself OpenMPI may advertise an unroutable rail IP
+# + N RoCE rails), so left to itself OpenMPI may advertise an unroutable rail IP
 # and the peer's "connect ... :1024" times out (EINPROGRESS). Pin every MPI TCP
 # channel to the pod-SDN iface and force the plain ob1/tcp stack so MPI never
 # probes the rails.
 run_nccl(){ # hca outfile tag
-  local hca="$1" out="$2" tag="$3"
-  echo ">>> NCCL $tag : NCCL_IB_HCA=$hca  ($COLLECTIVE $BEGIN..$END, $NSIZES sizes) -- this can take a while"
+  local hca="$1" out="$2" tag="$3" np=$(( GPUS * 2 ))
+  echo ">>> NCCL $tag : NCCL_IB_HCA=$hca  ($COLLECTIVE $BEGIN..$END, $NSIZES sizes, $np ranks) -- this can take a while"
   # shellcheck disable=SC2086
-  mpirun --allow-run-as-root -np 2 -H "$(hostname),$PEER" \
+  mpirun --allow-run-as-root -np "$np" \
+    -H "$(hostname):$GPUS,$PEER:$GPUS" \
+    --bind-to none --map-by slot \
     --mca plm_rsh_args "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes" \
     --mca pml ob1 --mca btl self,tcp \
     --mca btl_tcp_if_include "$SOCK_IFNAME" \
@@ -139,8 +149,11 @@ run_nccl(){ # hca outfile tag
     -x NCCL_SHM_DISABLE="$SHM_DISABLE" \
     -x NCCL_SOCKET_IFNAME="$SOCK_IFNAME" \
     ${GID_INDEX:+-x NCCL_IB_GID_INDEX="$GID_INDEX"} \
+    ${IB_TC:+-x NCCL_IB_TC="$IB_TC"} \
+    ${IB_QPS:+-x NCCL_IB_QPS_PER_CONNECTION="$IB_QPS"} \
+    ${PXN_DISABLE:+-x NCCL_PXN_DISABLE="$PXN_DISABLE"} \
     -x LD_LIBRARY_PATH -x PATH \
-    "$COLLECTIVE" -b "$BEGIN" -e "$END" -f "$FACTOR" -g "$GPUS" 2>&1 \
+    "$COLLECTIVE" -b "$BEGIN" -e "$END" -f "$FACTOR" -g 1 2>&1 \
     | tee "$out" \
     | awk -v total="$NSIZES" -v tag="$tag" '
         # echo NCCL/MPI diagnostics through; add a compact per-size progress line.
@@ -152,8 +165,8 @@ run_nccl(){ # hca outfile tag
 
 busbw(){ awk '/Avg bus bandwidth/ {v=$(NF)} END{print (v==""?"NA":v)}' "$1"; }
 
-echo "NCCL $COLLECTIVE  peer=$PEER  gpus/proc=$GPUS"
-echo "  one=$HCA_ONE  all=$HCA_ALL  gid_index=${GID_INDEX:-<none>}  sock=$SOCK_IFNAME  -> $RUNDIR"
+echo "NCCL $COLLECTIVE  peer=$PEER  gpus/node=$GPUS  ranks=$(( GPUS * 2 ))  (one rank per GPU)"
+echo "  one=$HCA_ONE  all=$HCA_ALL  gid_index=${GID_INDEX:-<none>}  sock=$SOCK_IFNAME  tc=${IB_TC:-default} qps=${IB_QPS:-default} pxn_disable=${PXN_DISABLE:-default}  -> $RUNDIR"
 run_nccl "$HCA_ONE" "$RUNDIR/nccl/one_hca.txt" "[1/2] one-HCA"
 run_nccl "$HCA_ALL" "$RUNDIR/nccl/all_hca.txt" "[2/2] all-HCA"
 ONE="$(busbw "$RUNDIR/nccl/one_hca.txt")"; ALL="$(busbw "$RUNDIR/nccl/all_hca.txt")"
@@ -167,7 +180,8 @@ cat > "$RUNDIR/setup.json" <<EOF
   "date": "$(date -Is)",
   "gpudirect": true,
   "collective": "$COLLECTIVE",
-  "gpus_per_proc": $GPUS,
+  "gpus_per_node": $GPUS,
+  "ranks": $(( GPUS * 2 )),
   "gid_index": "${GID_INDEX:-NA}"
 }
 EOF
