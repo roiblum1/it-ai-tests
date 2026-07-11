@@ -1,0 +1,2947 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "roce_perf_documentation_set",
+        "label": "RoCE-perf subject documentation triad (CLAUDE.md, README.md, NCCL-DEEP-DIVE.md) cross-reference each other as one architecture+usage+deep-dive doc set",
+        "nodes": [
+          "roce_tests_chart_claude",
+          "roce_tests_chart_readme",
+          "roce_tests_chart_nccl_deep_dive"
+        ],
+        "relation": "form",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "RoCE-tests-chart/CLAUDE.md"
+      },
+      {
+        "id": "roce_perf_helpers_tpl_consumers",
+        "label": "Templates sharing the roce-perf.* Helm helper functions (env/container/volumes/labels) so pod shape changes happen in one place",
+        "nodes": [
+          "roce_tests_chart_roce_perf_templates_pods",
+          "roce_tests_chart_roce_perf_templates_nccl_pods",
+          "roce_tests_chart_roce_perf_templates_configmap",
+          "roce_tests_chart_roce_perf_templates_report_job",
+          "roce_tests_chart_roce_perf_templates_helpers_tpl"
+        ],
+        "relation": "implement",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "RoCE-tests-chart/CLAUDE.md"
+      },
+      {
+        "id": "nccl_one_vs_many_benchmark_flow",
+        "label": "NCCL one-vs-many execution flow: run_suite.sh drives rail_routes.sh (source routing) and nccl_one_vs_many.sh (mpirun sweep) against the nccl-pods, configured by values.nccl",
+        "nodes": [
+          "roce_tests_chart_run_suite_sh",
+          "roce_tests_chart_roce_perf_files_rail_routes_sh",
+          "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh",
+          "roce_tests_chart_roce_perf_templates_nccl_pods",
+          "roce_tests_chart_roce_perf_values_nccl"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "RoCE-tests-chart/CLAUDE.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "nccl_one_vs_many.sh",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "community": 4,
+      "norm_label": "nccl_one_vs_many.sh"
+    },
+    {
+      "label": "nccl_one_vs_many.sh script",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh__entry",
+      "community": 4,
+      "norm_label": "nccl_one_vs_many.sh script"
+    },
+    {
+      "label": "build_nccl_tests()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L53",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_build_nccl_tests",
+      "community": 4,
+      "norm_label": "build_nccl_tests()"
+    },
+    {
+      "label": "detect_hcas()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L77",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_detect_hcas",
+      "community": 4,
+      "norm_label": "detect_hcas()"
+    },
+    {
+      "label": "resolve_gid_index()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L96",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_resolve_gid_index",
+      "community": 4,
+      "norm_label": "resolve_gid_index()"
+    },
+    {
+      "label": "to_bytes()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L124",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_to_bytes",
+      "community": 4,
+      "norm_label": "to_bytes()"
+    },
+    {
+      "label": "run_nccl()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L143",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_run_nccl",
+      "community": 4,
+      "norm_label": "run_nccl()"
+    },
+    {
+      "label": "busbw()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L174",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_busbw",
+      "community": 4,
+      "norm_label": "busbw()"
+    },
+    {
+      "label": "num()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L175",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_num",
+      "community": 4,
+      "norm_label": "num()"
+    },
+    {
+      "label": "plot_report.py",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report",
+      "community": 1,
+      "norm_label": "plot_report.py"
+    },
+    {
+      "label": "discover_runs()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L97",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_discover_runs",
+      "community": 5,
+      "norm_label": "discover_runs()"
+    },
+    {
+      "label": "read_bw_csv()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L115",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_read_bw_csv",
+      "community": 9,
+      "norm_label": "read_bw_csv()"
+    },
+    {
+      "label": "plot_bw()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L130",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "community": 9,
+      "norm_label": "plot_bw()"
+    },
+    {
+      "label": "plot_lat_cdf()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L159",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_cdf",
+      "community": 1,
+      "norm_label": "plot_lat_cdf()"
+    },
+    {
+      "label": "_isnum()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L183",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_isnum",
+      "community": 1,
+      "norm_label": "_isnum()"
+    },
+    {
+      "label": "_numeric_from_raw()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L191",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_numeric_from_raw",
+      "community": 1,
+      "norm_label": "_numeric_from_raw()"
+    },
+    {
+      "label": "_load_samples()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L207",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "community": 1,
+      "norm_label": "_load_samples()"
+    },
+    {
+      "label": "_peak_downsample()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L226",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_peak_downsample",
+      "community": 11,
+      "norm_label": "_peak_downsample()"
+    },
+    {
+      "label": "plot_lat_timeseries()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L242",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "community": 11,
+      "norm_label": "plot_lat_timeseries()"
+    },
+    {
+      "label": "plot_lat_hist()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L265",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_hist",
+      "community": 1,
+      "norm_label": "plot_lat_hist()"
+    },
+    {
+      "label": "load_lat_json()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L292",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_load_lat_json",
+      "community": 5,
+      "norm_label": "load_lat_json()"
+    },
+    {
+      "label": "_nccl_collectives()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L307",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "community": 6,
+      "norm_label": "_nccl_collectives()"
+    },
+    {
+      "label": "plot_nccl()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L313",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl",
+      "community": 5,
+      "norm_label": "plot_nccl()"
+    },
+    {
+      "label": "parse_nccl_table()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L341",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_parse_nccl_table",
+      "community": 6,
+      "norm_label": "parse_nccl_table()"
+    },
+    {
+      "label": "plot_nccl_curves()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L369",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "community": 6,
+      "norm_label": "plot_nccl_curves()"
+    },
+    {
+      "label": "_load_json()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L421",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_load_json",
+      "community": 6,
+      "norm_label": "_load_json()"
+    },
+    {
+      "label": "_read_csv_rows()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L429",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_read_csv_rows",
+      "community": 5,
+      "norm_label": "_read_csv_rows()"
+    },
+    {
+      "label": "export_all_data()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L437",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "community": 6,
+      "norm_label": "export_all_data()"
+    },
+    {
+      "label": "human_size()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L499",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_human_size",
+      "community": 9,
+      "norm_label": "human_size()"
+    },
+    {
+      "label": "html_escape()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L507",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_html_escape",
+      "community": 5,
+      "norm_label": "html_escape()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L511",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "community": 5,
+      "norm_label": "main()"
+    },
+    {
+      "label": "Latest run dir per env-label (dirname sorts ascending by timestamp).",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L98",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_98",
+      "community": 5,
+      "norm_label": "latest run dir per env-label (dirname sorts ascending by timestamp)."
+    },
+    {
+      "label": "-> {size_bytes: bw_avg_gbps}.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L116",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_116",
+      "community": 9,
+      "norm_label": "-> {size_bytes: bw_avg_gbps}."
+    },
+    {
+      "label": "Grouped bar: x = message size, group = environment.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L131",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_131",
+      "community": 9,
+      "norm_label": "grouped bar: x = message size, group = environment."
+    },
+    {
+      "label": "CDF overlay of raw -U samples -> tail-latency comparison across envs.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L160",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_160",
+      "community": 1,
+      "norm_label": "cdf overlay of raw -u samples -> tail-latency comparison across envs."
+    },
+    {
+      "label": "Re-parse raw perftest stdout: keep 1-2-field all-numeric lines' last field.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L192",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_192",
+      "community": 1,
+      "norm_label": "re-parse raw perftest stdout: keep 1-2-field all-numeric lines' last field."
+    },
+    {
+      "label": "Raw -U samples as a 1-D array, or None. Try the filtered .unsorted.txt     first",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L208",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_208",
+      "community": 1,
+      "norm_label": "raw -u samples as a 1-d array, or none. try the filtered .unsorted.txt     first"
+    },
+    {
+      "label": "Downsample to ~target points while KEEPING spikes (max within each bin).",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L227",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_227",
+      "community": 11,
+      "norm_label": "downsample to ~target points while keeping spikes (max within each bin)."
+    },
+    {
+      "label": "Latency vs sample index (proxy for time) -> see spikes/jitter over the run.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L243",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_243",
+      "community": 11,
+      "norm_label": "latency vs sample index (proxy for time) -> see spikes/jitter over the run."
+    },
+    {
+      "label": "Histogram of the -U sample distribution (log-y so the tail is visible).",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L266",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_266",
+      "community": 1,
+      "norm_label": "histogram of the -u sample distribution (log-y so the tail is visible)."
+    },
+    {
+      "label": "-> list of (label, {percentiles}) for the table.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L293",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_293",
+      "community": 5,
+      "norm_label": "-> list of (label, {percentiles}) for the table."
+    },
+    {
+      "label": "{collective: {\"one\": {...}, \"all\": {...}}} from a run's nccl/nccl.json.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L308",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_308",
+      "community": 6,
+      "norm_label": "{collective: {\"one\": {...}, \"all\": {...}}} from a run's nccl/nccl.json."
+    },
+    {
+      "label": "Grouped busbw bar: x = collective, one-HCA vs all-HCA (per env).",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L314",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_314",
+      "community": 5,
+      "norm_label": "grouped busbw bar: x = collective, one-hca vs all-hca (per env)."
+    },
+    {
+      "label": "Parse an nccl-tests stdout table -> [{size, algbw, busbw}] per message size.",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L342",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_342",
+      "community": 6,
+      "norm_label": "parse an nccl-tests stdout table -> [{size, algbw, busbw}] per message size."
+    },
+    {
+      "label": "Per-collective busbw-vs-size (one dashed / all solid) PLUS a cross-collective",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L370",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_370",
+      "community": 6,
+      "norm_label": "per-collective busbw-vs-size (one dashed / all solid) plus a cross-collective"
+    },
+    {
+      "label": "Write every test's numbers into flat CSVs under <report>/data/ so nothing     is",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L438",
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_plot_report_rationale_438",
+      "community": 6,
+      "norm_label": "write every test's numbers into flat csvs under <report>/data/ so nothing     is"
+    },
+    {
+      "label": "rail_routes.sh",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/rail_routes.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_rail_routes",
+      "community": 13,
+      "norm_label": "rail_routes.sh"
+    },
+    {
+      "label": "rail_routes.sh script",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/rail_routes.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_rail_routes_sh__entry",
+      "community": 13,
+      "norm_label": "rail_routes.sh script"
+    },
+    {
+      "label": "roce_bench.sh",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench",
+      "community": 2,
+      "norm_label": "roce_bench.sh"
+    },
+    {
+      "label": "roce_bench.sh script",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_sh__entry",
+      "community": 2,
+      "norm_label": "roce_bench.sh script"
+    },
+    {
+      "label": "banner()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L88",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_banner",
+      "community": 2,
+      "norm_label": "banner()"
+    },
+    {
+      "label": "detect_rdma_device()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L96",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_detect_rdma_device",
+      "community": 2,
+      "norm_label": "detect_rdma_device()"
+    },
+    {
+      "label": "summarize_latency()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L104",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_summarize_latency",
+      "community": 2,
+      "norm_label": "summarize_latency()"
+    },
+    {
+      "label": "add_bw_test()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L135",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_add_bw_test",
+      "community": 2,
+      "norm_label": "add_bw_test()"
+    },
+    {
+      "label": "add_lat_test()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L145",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_add_lat_test",
+      "community": 2,
+      "norm_label": "add_lat_test()"
+    },
+    {
+      "label": "gpudirect_enabled_for()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L154",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_gpudirect_enabled_for",
+      "community": 2,
+      "norm_label": "gpudirect_enabled_for()"
+    },
+    {
+      "label": "build_test_plan()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L163",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_build_test_plan",
+      "community": 2,
+      "norm_label": "build_test_plan()"
+    },
+    {
+      "label": "binary_for()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L188",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_binary_for",
+      "community": 2,
+      "norm_label": "binary_for()"
+    },
+    {
+      "label": "run_suite.sh",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_run_suite",
+      "community": 10,
+      "norm_label": "run_suite.sh"
+    },
+    {
+      "label": "run_suite.sh script",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_run_suite_sh__entry",
+      "community": 10,
+      "norm_label": "run_suite.sh script"
+    },
+    {
+      "label": "usage()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L42",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_run_suite_usage",
+      "community": 10,
+      "norm_label": "usage()"
+    },
+    {
+      "label": "oc_exec()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L63",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_run_suite_oc_exec",
+      "community": 10,
+      "norm_label": "oc_exec()"
+    },
+    {
+      "label": "log()",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L65",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "roce_tests_chart_run_suite_log",
+      "community": 10,
+      "norm_label": "log()"
+    },
+    {
+      "label": "IT / AI Infrastructure Benchmarks (repo index)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_repo",
+      "community": 7,
+      "norm_label": "it / ai infrastructure benchmarks (repo index)"
+    },
+    {
+      "label": "Subject Folder Convention: README.md (usage) + CLAUDE.md (architecture) per subject, reusing the shared CUDA image",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_subject_convention",
+      "community": 7,
+      "norm_label": "subject folder convention: readme.md (usage) + claude.md (architecture) per subject, reusing the shared cuda image"
+    },
+    {
+      "label": "CLAUDE.md \u2014 RoCE benchmark architecture/contributor guide",
+      "file_type": "document",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude",
+      "community": 0,
+      "norm_label": "claude.md \u2014 roce benchmark architecture/contributor guide"
+    },
+    {
+      "label": "NCCL-DEEP-DIVE.md \u2014 NCCL benchmark deep dive",
+      "file_type": "document",
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_nccl_deep_dive",
+      "community": 3,
+      "norm_label": "nccl-deep-dive.md \u2014 nccl benchmark deep dive"
+    },
+    {
+      "label": "RoCE-tests-chart/README.md \u2014 user quickstart",
+      "file_type": "document",
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_readme",
+      "community": 7,
+      "norm_label": "roce-tests-chart/readme.md \u2014 user quickstart"
+    },
+    {
+      "label": "roce-perf Helm chart (Chart.yaml)",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/Chart.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_chart",
+      "community": 0,
+      "norm_label": "roce-perf helm chart (chart.yaml)"
+    },
+    {
+      "label": "templates/NOTES.txt \u2014 post-install manual-steps notes",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/templates/NOTES.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_notes",
+      "community": 7,
+      "norm_label": "templates/notes.txt \u2014 post-install manual-steps notes"
+    },
+    {
+      "label": "templates/configmap.yaml \u2014 glob-mounts files/* as -scripts ConfigMap",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_configmap",
+      "community": 0,
+      "norm_label": "templates/configmap.yaml \u2014 glob-mounts files/* as -scripts configmap"
+    },
+    {
+      "label": "templates/nccl-pods.yaml \u2014 nccl-launcher/nccl-peer multi-rail pods",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/templates/nccl-pods.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_nccl_pods",
+      "community": 12,
+      "norm_label": "templates/nccl-pods.yaml \u2014 nccl-launcher/nccl-peer multi-rail pods"
+    },
+    {
+      "label": "templates/pods.yaml \u2014 rdma-server/rdma-client-leaf/rdma-client-spine pods",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/templates/pods.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_pods",
+      "community": 12,
+      "norm_label": "templates/pods.yaml \u2014 rdma-server/rdma-client-leaf/rdma-client-spine pods"
+    },
+    {
+      "label": "templates/report-job.yaml \u2014 in-cluster plot_report.py Job (requires results.pvcName)",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/templates/report-job.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_report_job",
+      "community": 0,
+      "norm_label": "templates/report-job.yaml \u2014 in-cluster plot_report.py job (requires results.pvcname)"
+    },
+    {
+      "label": "values.yaml \u2014 chart configuration (image, topology, scenario, benchmarks, gpudirect, nccl, results, report)",
+      "file_type": "code",
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_values",
+      "community": 8,
+      "norm_label": "values.yaml \u2014 chart configuration (image, topology, scenario, benchmarks, gpudirect, nccl, results, report)"
+    },
+    {
+      "label": "Dockerfile \u2014 shared CUDA13+RDMA benchmark image (perftest, NCCL, OpenMPI)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_dockerfile",
+      "community": 7,
+      "norm_label": "dockerfile \u2014 shared cuda13+rdma benchmark image (perftest, nccl, openmpi)"
+    },
+    {
+      "label": "run_suite.sh \u2014 host-side oc-based driver script (IP discovery, launches clients, --report, --nccl)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_run_suite_sh",
+      "community": 7,
+      "norm_label": "run_suite.sh \u2014 host-side oc-based driver script (ip discovery, launches clients, --report, --nccl)"
+    },
+    {
+      "label": "files/roce_bench.sh \u2014 in-pod perftest runner (build_test_plan, add_bw_test/add_lat_test)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_files_roce_bench_sh",
+      "community": 0,
+      "norm_label": "files/roce_bench.sh \u2014 in-pod perftest runner (build_test_plan, add_bw_test/add_lat_test)"
+    },
+    {
+      "label": "files/plot_report.py \u2014 report/plotting script (BW bars, latency CDF/histogram, NCCL bars)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_files_plot_report_py",
+      "community": 0,
+      "norm_label": "files/plot_report.py \u2014 report/plotting script (bw bars, latency cdf/histogram, nccl bars)"
+    },
+    {
+      "label": "templates/_helpers.tpl \u2014 roce-perf.env / roce-perf.container / roce-perf.volumes shared helpers",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_templates_helpers_tpl",
+      "community": 12,
+      "norm_label": "templates/_helpers.tpl \u2014 roce-perf.env / roce-perf.container / roce-perf.volumes shared helpers"
+    },
+    {
+      "label": "files/rail_routes.sh \u2014 per-rail source routing (ip rule from <rail-ip>, loose rp_filter)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_files_rail_routes_sh",
+      "community": 0,
+      "norm_label": "files/rail_routes.sh \u2014 per-rail source routing (ip rule from <rail-ip>, loose rp_filter)"
+    },
+    {
+      "label": "files/nccl_one_vs_many.sh \u2014 builds nccl-tests, runs mpirun one-HCA-vs-all per collective",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh",
+      "community": 3,
+      "norm_label": "files/nccl_one_vs_many.sh \u2014 builds nccl-tests, runs mpirun one-hca-vs-all per collective"
+    },
+    {
+      "label": "Leaf/spine = which NIC an endpoint uses (8 rails/node, first 4 leaf1, next 4 leaf2)",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_leaf_spine_topology",
+      "community": 8,
+      "norm_label": "leaf/spine = which nic an endpoint uses (8 rails/node, first 4 leaf1, next 4 leaf2)"
+    },
+    {
+      "label": "One VF per pod convention: device-plugin resource + NAD derived per-pod from the nic",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_one_vf_per_pod",
+      "community": 0,
+      "norm_label": "one vf per pod convention: device-plugin resource + nad derived per-pod from the nic"
+    },
+    {
+      "label": "Results storage precedence: pvcName (shared RWX) > hostPath (node-local, default) > emptyDir; run_suite.sh --report gathers node-local results so no shared PVC is needed except for the in-cluster report Job",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_results_storage_precedence",
+      "community": 8,
+      "norm_label": "results storage precedence: pvcname (shared rwx) > hostpath (node-local, default) > emptydir; run_suite.sh --report gathers node-local results so no shared pvc is needed except for the in-cluster report job"
+    },
+    {
+      "label": "NUMA pinning: numactl wraps perftest per rail's NIC numa_node, best-effort unless pod is Guaranteed QoS + topology manager single-numa-node",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_numa_pinning",
+      "community": 0,
+      "norm_label": "numa pinning: numactl wraps perftest per rail's nic numa_node, best-effort unless pod is guaranteed qos + topology manager single-numa-node"
+    },
+    {
+      "label": "Per-rail source routing: multi-VF pods need one routing table + ip rule per rail-IP to avoid rp_filter drops",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_per_rail_source_routing",
+      "community": 0,
+      "norm_label": "per-rail source routing: multi-vf pods need one routing table + ip rule per rail-ip to avoid rp_filter drops"
+    },
+    {
+      "label": "IPv4-mapped RoCE v2 GID (::ffff:<rail-ip>, typically index 3) required for cross-leaf routing; link-local GIDs don't route",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_ipv4_mapped_gid",
+      "community": 3,
+      "norm_label": "ipv4-mapped roce v2 gid (::ffff:<rail-ip>, typically index 3) required for cross-leaf routing; link-local gids don't route"
+    },
+    {
+      "label": "Memory-backed /dev/shm (default 8-16Gi) on NCCL pods to avoid k8s default 64Mi 'No space left on device'",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_dev_shm_memory_backed",
+      "community": 3,
+      "norm_label": "memory-backed /dev/shm (default 8-16gi) on nccl pods to avoid k8s default 64mi 'no space left on device'"
+    },
+    {
+      "label": "build_test_plan invariant: server and client independently derive identical port-per-(test,size) assignment from the same env, no negotiation needed",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_claude_build_test_plan",
+      "community": 0,
+      "norm_label": "build_test_plan invariant: server and client independently derive identical port-per-(test,size) assignment from the same env, no negotiation needed"
+    },
+    {
+      "label": "algbw vs busbw: busbw = algbw x 2(n-1)/n corrects for AllReduce's multi-hop wire traffic; busbw is the hardware-comparable number",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_nccl_deep_dive_algbw_busbw",
+      "community": 3,
+      "norm_label": "algbw vs busbw: busbw = algbw x 2(n-1)/n corrects for allreduce's multi-hop wire traffic; busbw is the hardware-comparable number"
+    },
+    {
+      "label": "one-HCA-vs-all: rail-scaling test via NCCL_IB_HCA (1 rail vs all rails), not a GPU-participation test; expects ~N x scaling",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_nccl_deep_dive_one_hca_vs_all",
+      "community": 3,
+      "norm_label": "one-hca-vs-all: rail-scaling test via nccl_ib_hca (1 rail vs all rails), not a gpu-participation test; expects ~n x scaling"
+    },
+    {
+      "label": "*_CFG two-layer env design: chart renders NCCL_*_CFG placeholders (e.g. 'auto'), runner resolves them into real documented NCCL_* vars passed via mpirun -x",
+      "file_type": "rationale",
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_nccl_deep_dive_cfg_two_layer",
+      "community": 3,
+      "norm_label": "*_cfg two-layer env design: chart renders nccl_*_cfg placeholders (e.g. 'auto'), runner resolves them into real documented nccl_* vars passed via mpirun -x"
+    },
+    {
+      "label": "Collectives swept one-HCA-vs-all: all_reduce_perf, alltoall_perf, reduce_scatter_perf, sendrecv_perf \u2014 each a distinct traffic pattern",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_nccl_deep_dive_collectives",
+      "community": 3,
+      "norm_label": "collectives swept one-hca-vs-all: all_reduce_perf, alltoall_perf, reduce_scatter_perf, sendrecv_perf \u2014 each a distinct traffic pattern"
+    },
+    {
+      "label": "values.scenario \u2014 server/sameLeaf/spine endpoint topology (node, nic, nad, gpuIndex)",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_values_scenario",
+      "community": 8,
+      "norm_label": "values.scenario \u2014 server/sameleaf/spine endpoint topology (node, nic, nad, gpuindex)"
+    },
+    {
+      "label": "values.nccl \u2014 nodes, rails, gpus, collectives, sizes, ib.* tuning for the one-HCA-vs-all test",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_values_nccl",
+      "community": 3,
+      "norm_label": "values.nccl \u2014 nodes, rails, gpus, collectives, sizes, ib.* tuning for the one-hca-vs-all test"
+    },
+    {
+      "label": "values.topology \u2014 nadPattern/resourcePattern/device fallback templates",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_values_topology",
+      "community": 12,
+      "norm_label": "values.topology \u2014 nadpattern/resourcepattern/device fallback templates"
+    },
+    {
+      "label": "values.benchmarks \u2014 bw.{read,write} and lat.{write,read,send} perftest matrix config",
+      "file_type": "concept",
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "roce_tests_chart_roce_perf_values_benchmarks",
+      "community": 8,
+      "norm_label": "values.benchmarks \u2014 bw.{read,write} and lat.{write,read,send} perftest matrix config"
+    }
+  ],
+  "links": [
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_build_nccl_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L174",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_busbw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_detect_hcas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L175",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_num",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_resolve_gid_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_run_nccl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_to_bytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L69",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh__entry",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_build_nccl_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/nccl_one_vs_many.sh",
+      "source_location": "L184",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh__entry",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_run_nccl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_discover_runs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L437",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L507",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_html_escape",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L499",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_human_size",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L183",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_isnum",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L421",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L292",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_lat_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L207",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L511",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L307",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_numeric_from_raw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_parse_nccl_table",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L226",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_peak_downsample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L159",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_cdf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L265",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_hist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L242",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L313",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L369",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_bw_csv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L429",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_csv_rows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L519",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_discover_runs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_98",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_discover_runs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_bw_csv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_116",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_bw_csv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L555",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_human_size",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_131",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_bw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L578",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_cdf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_cdf",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_160",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_cdf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L200",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_numeric_from_raw",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_isnum",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L220",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_numeric_from_raw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_192",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_numeric_from_raw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_hist",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L248",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_208",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L251",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_peak_downsample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L227",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_227",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_peak_downsample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L577",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_243",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_timeseries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L579",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_hist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L266",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_266",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_lat_hist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L582",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_lat_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L293",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_293",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_lat_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L479",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L309",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L315",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L376",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L308",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_308",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_nccl_collectives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L594",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L314",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_314",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L491",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_parse_nccl_table",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L378",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_parse_nccl_table",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L342",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_342",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_parse_nccl_table",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L595",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L370",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_370",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_plot_nccl_curves",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L467",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_load_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L452",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_csv_rows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L562",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_read_csv_rows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L609",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L438",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_rationale_438",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_export_all_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/plot_report.py",
+      "source_location": "L540",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_plot_report_main",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_html_escape",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/rail_routes.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_rail_routes",
+      "target": "roce_tests_chart_roce_perf_files_rail_routes_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_add_bw_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_add_lat_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_banner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_binary_for",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L163",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_build_test_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_detect_rdma_device",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L154",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_gpudirect_enabled_for",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_files_roce_bench",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_summarize_latency",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L271",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_roce_bench_sh__entry",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_banner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L236",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_roce_bench_sh__entry",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_build_test_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L334",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_roce_bench_sh__entry",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_summarize_latency",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L168",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_roce_bench_build_test_plan",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_add_bw_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/roce-perf/files/roce_bench.sh",
+      "source_location": "L170",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_roce_perf_files_roce_bench_build_test_plan",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_add_lat_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "roce_tests_chart_run_suite",
+      "target": "roce_tests_chart_run_suite_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "roce_tests_chart_run_suite",
+      "target": "roce_tests_chart_run_suite_oc_exec",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "roce_tests_chart_run_suite",
+      "target": "roce_tests_chart_run_suite_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "roce_tests_chart_run_suite",
+      "target": "roce_tests_chart_run_suite_usage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L73",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_run_suite_sh__entry",
+      "target": "roce_tests_chart_run_suite_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L97",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_run_suite_sh__entry",
+      "target": "roce_tests_chart_run_suite_oc_exec",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "RoCE-tests-chart/run_suite.sh",
+      "source_location": "L57",
+      "weight": 1.0,
+      "context": "call",
+      "source": "roce_tests_chart_run_suite_sh__entry",
+      "target": "roce_tests_chart_run_suite_usage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_repo",
+      "target": "readme_subject_convention"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_repo",
+      "target": "roce_tests_chart_claude"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_repo",
+      "target": "roce_tests_chart_dockerfile"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_repo",
+      "target": "roce_tests_chart_readme"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_build_test_plan"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_dev_shm_memory_backed"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_ipv4_mapped_gid"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_leaf_spine_topology"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_numa_pinning"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_one_vf_per_pod"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_per_rail_source_routing"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_claude_results_storage_precedence"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_dockerfile"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_readme"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_chart"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_py"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_files_rail_routes_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_configmap"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_helpers_tpl"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_nccl_pods"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_notes"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_pods"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_roce_perf_templates_report_job"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude",
+      "target": "roce_tests_chart_run_suite_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_nccl_deep_dive_algbw_busbw"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_nccl_deep_dive_cfg_two_layer"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_nccl_deep_dive_collectives"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_nccl_deep_dive_one_hca_vs_all"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive",
+      "target": "roce_tests_chart_roce_perf_values"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_nccl_deep_dive"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_claude_leaf_spine_topology"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_dockerfile"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_roce_perf_files_rail_routes_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_roce_perf_templates_notes"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_roce_perf_values"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_readme",
+      "target": "roce_tests_chart_run_suite_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/NOTES.txt",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_notes",
+      "target": "roce_tests_chart_run_suite_sh"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_configmap",
+      "target": "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_configmap",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_py"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_configmap",
+      "target": "roce_tests_chart_roce_perf_files_rail_routes_sh"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_configmap",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/configmap.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_configmap",
+      "target": "roce_tests_chart_roce_perf_templates_helpers_tpl"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/nccl-pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_nccl_pods",
+      "target": "roce_tests_chart_claude_dev_shm_memory_backed"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/nccl-pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_nccl_pods",
+      "target": "roce_tests_chart_roce_perf_templates_helpers_tpl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/nccl-pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_nccl_pods",
+      "target": "roce_tests_chart_roce_perf_values_nccl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/nccl-pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_nccl_pods",
+      "target": "roce_tests_chart_roce_perf_values_topology"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_pods",
+      "target": "roce_tests_chart_roce_perf_templates_helpers_tpl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_pods",
+      "target": "roce_tests_chart_roce_perf_values_scenario"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/pods.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_pods",
+      "target": "roce_tests_chart_roce_perf_values_topology"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/report-job.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_report_job",
+      "target": "roce_tests_chart_roce_perf_files_plot_report_py"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/report-job.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_report_job",
+      "target": "roce_tests_chart_roce_perf_templates_helpers_tpl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/templates/report-job.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_templates_report_job",
+      "target": "roce_tests_chart_roce_perf_values"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude_results_storage_precedence",
+      "target": "roce_tests_chart_roce_perf_values"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_dockerfile"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_roce_perf_files_roce_bench_sh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_roce_perf_values_benchmarks"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_roce_perf_values_nccl"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_roce_perf_values_scenario"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values",
+      "target": "roce_tests_chart_roce_perf_values_topology"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude_leaf_spine_topology",
+      "target": "roce_tests_chart_roce_perf_values_scenario"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude_ipv4_mapped_gid",
+      "target": "roce_tests_chart_roce_perf_values_nccl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_claude_dev_shm_memory_backed",
+      "target": "roce_tests_chart_roce_perf_values_nccl"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/NCCL-DEEP-DIVE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_nccl_deep_dive_one_hca_vs_all",
+      "target": "roce_tests_chart_roce_perf_values_nccl"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "RoCE-tests-chart/roce-perf/values.yaml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "roce_tests_chart_roce_perf_values_nccl",
+      "target": "roce_tests_chart_nccl_deep_dive_collectives"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "roce_perf_documentation_set",
+      "label": "RoCE-perf subject documentation triad (CLAUDE.md, README.md, NCCL-DEEP-DIVE.md) cross-reference each other as one architecture+usage+deep-dive doc set",
+      "nodes": [
+        "roce_tests_chart_claude",
+        "roce_tests_chart_readme",
+        "roce_tests_chart_nccl_deep_dive"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "RoCE-tests-chart/CLAUDE.md"
+    },
+    {
+      "id": "roce_perf_helpers_tpl_consumers",
+      "label": "Templates sharing the roce-perf.* Helm helper functions (env/container/volumes/labels) so pod shape changes happen in one place",
+      "nodes": [
+        "roce_tests_chart_roce_perf_templates_pods",
+        "roce_tests_chart_roce_perf_templates_nccl_pods",
+        "roce_tests_chart_roce_perf_templates_configmap",
+        "roce_tests_chart_roce_perf_templates_report_job",
+        "roce_tests_chart_roce_perf_templates_helpers_tpl"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "RoCE-tests-chart/CLAUDE.md"
+    },
+    {
+      "id": "nccl_one_vs_many_benchmark_flow",
+      "label": "NCCL one-vs-many execution flow: run_suite.sh drives rail_routes.sh (source routing) and nccl_one_vs_many.sh (mpirun sweep) against the nccl-pods, configured by values.nccl",
+      "nodes": [
+        "roce_tests_chart_run_suite_sh",
+        "roce_tests_chart_roce_perf_files_rail_routes_sh",
+        "roce_tests_chart_roce_perf_files_nccl_one_vs_many_sh",
+        "roce_tests_chart_roce_perf_templates_nccl_pods",
+        "roce_tests_chart_roce_perf_values_nccl"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "RoCE-tests-chart/CLAUDE.md"
+    }
+  ],
+  "built_at_commit": "fea89b57ac381c7c2ba345ef11f6a58405cb92c7"
+}
