@@ -13,6 +13,10 @@ RoCE-tests-chart/roce-perf/Chart.lock
 # Benchmark / driver output (run_suite.sh --report copies here)
 /report/
 RoCE-tests-chart/report/
+node-perf/report/
+
+# graphify knowledge-graph output (generated tooling artifact, not source)
+graphify-out/
 
 # Large artifacts — keep these out of the repo
 *.zip

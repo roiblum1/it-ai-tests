@@ -1,0 +1,27 @@
+{{- $root := . -}}
+{{/*
+  One idle pod per node in values.nodes. Each is pinned to its node by hostname
+  and sleeps until run_suite.sh execs node_bench.sh into it. No Multus / GPU /
+  rail resources -- these benchmarks only need CPU, memory, and the node's disk.
+*/}}
+{{- range $i, $node := .Values.nodes }}
+{{- $cmd := list "sleep" "infinity" -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: node-perf-{{ $i }}
+  labels:
+    {{- include "node-perf.labels" $root | nindent 4 }}
+    node-perf/node: {{ $node | quote }}
+  annotations:
+    node-perf/hostname: {{ $node | quote }}
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: {{ $node }}
+  containers:
+    {{- include "node-perf.container" (dict "ctx" $root "command" (toJson $cmd)) | nindent 4 }}
+  volumes:
+    {{- include "node-perf.volumes" $root | nindent 4 }}
+{{- end }}

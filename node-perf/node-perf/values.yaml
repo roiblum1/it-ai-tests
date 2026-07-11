@@ -1,0 +1,103 @@
+# =============================================================================
+# node-perf values
+# =============================================================================
+# A pluggable node-benchmark subject: run CPU / memory / disk benchmarks on
+# chosen nodes, change a tuning knob, re-run under a new label, and read a
+# baseline-vs-tuned report. Sibling to roce-perf; reuses the shared image
+# (which now also carries sysbench + fio -- see ../../RoCE-tests-chart/Dockerfile).
+image: docker.io/roi12345/it-ai-rdma-perf:v3
+imagePullPolicy: IfNotPresent
+
+# The benchmark pods run privileged so fio can open the node's real device with
+# O_DIRECT (and so the run sees the host, not a locked-down sandbox). For node
+# tuning you want the pod to see the WHOLE node -- so leave resources (below)
+# empty: a CPU/memory limit would make sysbench measure the pod's cgroup slice,
+# not the machine.
+privileged: true
+
+# -----------------------------------------------------------------------------
+# Which nodes to benchmark. One idle pod is stamped per node (pinned by
+# kubernetes.io/hostname). Benchmark ONE node at a time for a clean
+# baseline-vs-tuned comparison, or list several to profile a fleet in one run
+# (encode the node in --label, e.g. node03-baseline, so runs don't collide).
+# -----------------------------------------------------------------------------
+nodes:
+  - ocp4-hypershift-nova-h200-03
+  # - ocp4-hypershift-nova-h200-04
+
+# Optional CPU/memory reservation. LEAVE EMPTY for node tuning (a limit makes
+# sysbench/fio measure the pod's cgroup slice, not the node). Set only if you
+# deliberately want to benchmark a constrained slice.
+resources:
+  cpu: ""            # e.g. "16"
+  memory: ""         # e.g. "32Gi"
+
+script:
+  fileName: node_bench.sh           # orchestrator, must exist under files/
+  mountPath: /opt/node-perf
+
+# Where each pod stores its run dirs (node-local by default, so baseline and
+# tuned runs on the same node persist across the tuning change). run_suite.sh
+# --report gathers every node's run dirs into one pod before plotting, so
+# hostPath works without a shared PVC.
+#   hostPath (default): a node-local directory that persists after the pod exits
+#   pvcName           : a shared RWX PVC (overrides hostPath when set)
+#   neither set       : emptyDir (per-pod, deleted with the pod)
+results:
+  mountPath: /results
+  hostPath: /var/lib/node-perf       # node-local, persistent; set "" for emptyDir
+  pvcName: ""                        # an RWX PVC shared by all pods (overrides hostPath)
+
+# fio needs a scratch directory on the REAL node disk you want to characterize.
+# This hostPath is mounted into the pod at fio.directory (below); point it at the
+# device/mount you are tuning. DirectoryOrCreate so it's made on first use.
+diskScratch:
+  hostPath: /var/tmp/node-perf-fio   # node path fio reads/writes (the disk under test)
+  mountPath: /fio-scratch            # where it appears inside the pod
+
+# -----------------------------------------------------------------------------
+# Benchmark matrix. Each block is one pluggable module (bench_<name>.sh); toggle
+# with .enabled. Values are rendered into pod env vars (node-perf.env) and read
+# by the module scripts. To add a benchmark: drop a bench_<x>.sh in files/, add
+# a block here, and env-wire it -- node_bench.sh and report.py need no changes.
+# -----------------------------------------------------------------------------
+benchmarks:
+  # CPU: sysbench cpu (prime-number compute). events/sec (higher better) +
+  # 95th-pct latency. threads=0 -> use every online core.
+  cpu:
+    enabled: true
+    threads: 0                       # 0 = all online cores
+    time: 30                         # seconds per run
+    maxPrime: 20000                  # --cpu-max-prime (work size per event)
+
+  # Memory: sysbench memory throughput. Runs the cross product of oper x mode
+  # (read/write x seq/rnd) so you see both directions and access patterns.
+  memory:
+    enabled: true
+    threads: 0                       # 0 = all online cores
+    time: 30
+    blockSize: 1M                    # --memory-block-size
+    totalSize: 100G                  # --memory-total-size (cap; time usually ends it first)
+    oper: [read, write]              # --memory-oper
+    mode: [seq, rnd]                 # --memory-access-mode
+
+  # Disk: fio, one entry per job below. --direct=1 bypasses the page cache so you
+  # measure the device, not RAM. Each job -> IOPS + bw + clat p50/p99 metrics,
+  # dim = the job name. Targets diskScratch (the real node disk).
+  disk:
+    enabled: true
+    engine: libaio                   # fio --ioengine
+    time: 30                         # --runtime (per job)
+    size: 2G                         # --size (per job file)
+    directory: /fio-scratch          # must match diskScratch.mountPath
+    jobs:
+      - {name: randread,  rw: randread,  bs: 4k, iodepth: 32}
+      - {name: randwrite, rw: randwrite, bs: 4k, iodepth: 32}
+      - {name: seqread,   rw: read,      bs: 1M, iodepth: 16}
+      - {name: seqwrite,  rw: write,     bs: 1M, iodepth: 16}
+
+# Report: which label is the baseline that deltas are computed against. If no run
+# carries this label, the first run (alphabetical) is used as the baseline.
+report:
+  baselineLabel: baseline
+  outputSubdir: report

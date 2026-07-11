@@ -8,7 +8,7 @@ repo-level [README](../README.md) for the collection and this folder's
 
 ## What this is
 
-A single Helm chart, `roce-perf` (at [RoCE-tests-chart/roce-perf/](roce-perf/)), that deploys a RoCEv2 leaf/spine RDMA benchmark harness onto OpenShift, plus a [Dockerfile](Dockerfile) for the one CUDA-enabled image every pod uses.
+A single Helm chart, `roce-perf` (at [RoCE-tests-chart/roce-perf/](roce-perf/)), that deploys a RoCEv2 leaf/spine RDMA benchmark harness onto OpenShift. The one CUDA-enabled image every pod uses is the repo's shared [Dockerfile](../Dockerfile) (at the repo root — see the repo-level [README](../README.md)).
 
 The harness benchmarks a **1-to-1** server↔client pair across two environments at once: a client whose VF is on the **same leaf** as the server, and one whose VF is on a **different leaf** (traffic crosses the **spine**). Comparing the two shows the cost of the spine hop. It runs a configurable matrix of `perftest` tests (BW + latency), optionally over GPUDirect, plus an optional NCCL one-HCA-vs-all test, and renders comparison **graphs**.
 
@@ -29,7 +29,7 @@ helm install demo roce-perf -n <ns>
 Build the image (NVIDIA **CUDA 13** devel Ubuntu base — must match the node driver's CUDA level, e.g. driver 580 → CUDA 13; a stale base makes perftest `--use_cuda` segfault and NCCL fall back to sockets. CUDA + NCCL + OpenMPI + OpenSSH come prebuilt via apt. Only perftest (plain + CUDA) is compiled at build time. nccl-tests ships as **source** and is built on first use by `run_suite --nccl` on both GPU pods — `nvcc` segfaults under x86 emulation so it can't be cross-built on an ARM Mac. Tag: `it-ai-rdma-perf:v2`):
 
 ```bash
-docker build -t <registry>/rdma-tools-cuda:latest RoCE-tests-chart/
+docker build -t <registry>/rdma-tools-cuda:latest .   # from the repo root (shared image)
 ```
 
 Validate scripts without a cluster:
@@ -98,4 +98,4 @@ Server and client both call `build_test_plan`, which deterministically assigns a
 
 ## Notes
 - OpenShift-oriented (`oc`), but `kubectl` works for the generic bits.
-- The CUDA benchmark image ([Dockerfile](Dockerfile)) is the shared/"global" image — see the repo-level [README](../README.md).
+- The CUDA benchmark image ([Dockerfile](../Dockerfile), at the repo root) is the shared/"global" image — see the repo-level [README](../README.md).

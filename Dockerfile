@@ -9,18 +9,23 @@
 #
 # The base is a PREBUILT NVIDIA x86 image; `--platform linux/amd64` pulls x86.
 #
+# This is the SHARED image for the whole repo (both the RoCE and node-perf
+# subjects use it), so it lives at the repo root -- build with the root as the
+# context ("."). It clones its sources from git, so the context holds no build
+# inputs; any dir works, but "." keeps it unambiguous.
+#
 # DEFAULT = the ARM-Mac-buildable combo (CUDA 12.6 + perftest v4.5-0.20). That
 # perftest's CUDA path is cuda_loader.c (dlopen, pure gcc) -> no nvcc -> it cross-
 # compiles under x86 QEMU on an ARM Mac, and it still runs on the CUDA-13 / 580
 # driver via backward compat. NCCL needs no perftest, so this default fully works
-# for NCCL + the NIC/latency suite. Plain build:
-#   podman build --platform linux/amd64 -t <img> RoCE-tests-chart/
+# for NCCL + the NIC/latency suite. Plain build (from the repo root):
+#   podman build --platform linux/amd64 -t <img> .
 #
 # CUDA-13-NATIVE GPUDirect (newer perftest compiles src/cuda_kernels.cu with nvcc,
 # which segfaults under QEMU) -> BUILD ON x86 (GPU node / oc BuildConfig / x86 VM):
 #   podman build \
 #     --build-arg CUDA_IMAGE=nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu24.04 \
-#     --build-arg PERFTEST_REF=master -t <img> RoCE-tests-chart/
+#     --build-arg PERFTEST_REF=master -t <img> .
 #
 # Final image contains the full Phase-1 + NCCL toolset:
 #   - perftest (plain)   /usr/bin/ib_*           NIC tests, runs on any node
@@ -53,6 +58,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 #                          iproute2(ip/ss/rdma) net-tools ping arping traceroute mtr
 #                          tcpdump nc curl wget dig/nslookup iperf3 qperf
 #   shell + report + ssh : ssh jq hostname gawk less vim procps python3+matplotlib+numpy
+#   node benchmarks      : sysbench(cpu/memory) fio(disk)  -- used by the node-perf subject
 RUN apt-get update && apt-get install -y --no-install-recommends \
         rdma-core ibverbs-utils ibverbs-providers infiniband-diags rdmacm-utils \
         libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
@@ -62,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         iproute2 net-tools iputils-ping iputils-arping traceroute mtr-tiny \
         tcpdump netcat-openbsd curl wget bind9-dnsutils \
         iperf3 qperf \
+        sysbench fio \
         openssh-server openssh-client jq hostname gawk less vim-tiny procps \
         python3 python3-matplotlib python3-numpy \
     && rm -rf /var/lib/apt/lists/* \

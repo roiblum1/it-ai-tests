@@ -1,0 +1,33 @@
+node-perf installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Stamped {{ len .Values.nodes }} benchmark pod(s), one per node:
+{{- range $i, $node := .Values.nodes }}
+  node-perf-{{ $i }}  ->  {{ $node }}
+{{- end }}
+
+Drive it from your laptop (needs `oc` + this chart already installed). From the repo
+root, the shared dispatcher forwards to this subject's driver:
+
+  # 1) baseline (stock configuration)
+  ./run_suite.sh node-perf -n {{ .Release.Namespace }} --label baseline --note "stock" --report
+
+  # 2) make your tuning change on the node(s):
+  #      cpufreq governor, hugepages, tuned profile, kernel cmdline, NUMA, ...
+
+  # 3) re-run under a NEW label -- the report compares it against baseline
+  ./run_suite.sh node-perf -n {{ .Release.Namespace }} --label tuned --note "governor=performance" --report
+
+  open ./report/report.html        # baseline vs tuned, delta % per metric
+  # equivalent driver path: ./node-perf/run_suite.sh -n {{ .Release.Namespace }} ...
+
+Or run one pod manually:
+
+  oc exec -n {{ .Release.Namespace }} node-perf-0 -- \
+    bash {{ .Values.script.mountPath }}/{{ .Values.script.fileName }} run baseline "stock"
+
+Notes:
+- Benchmarks: CPU={{ .Values.benchmarks.cpu.enabled }}, memory={{ .Values.benchmarks.memory.enabled }}, disk(fio)={{ .Values.benchmarks.disk.enabled }}.
+- fio writes to the node path {{ .Values.diskScratch.hostPath }} (the disk under test).
+- For node tuning, keep resources.cpu/memory EMPTY so sysbench/fio see the whole
+  node, not a cgroup slice (currently cpu="{{ .Values.resources.cpu }}", memory="{{ .Values.resources.memory }}").
+- Runs are keyed by --label; baseline and tuned MUST use different labels.

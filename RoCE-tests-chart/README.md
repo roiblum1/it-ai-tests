@@ -53,7 +53,7 @@ scenario:
   ```bash
   oc adm policy add-scc-to-user privileged -z default -n <ns>
   ```
-- The shared CUDA benchmark image built/pushed from [Dockerfile](Dockerfile) (see
+- The shared CUDA benchmark image built/pushed from [Dockerfile](../Dockerfile) (see
   the repo-level [README](../README.md)). Set `image:` in values to your registry.
 - Results storage — **node-local `hostPath`** by default (`results.hostPath`,
   persists on the node). No shared PVC needed: `run_suite.sh --report` gathers each
@@ -81,6 +81,8 @@ oc adm policy add-scc-to-user privileged -z default -n <ns>
 #    needs results.hostPath (default) or a shared PVC -- NOT emptyDir.
 ./run_suite.sh -n <ns> --report            # perftest only
 ./run_suite.sh -n <ns> --nccl --report     # perftest, then NCCL (perftest pods removed)
+# or from the repo root via the shared dispatcher:
+#   ./run_suite.sh roce -n <ns> --report
 
 # 4. open the report
 open ./report/report.html

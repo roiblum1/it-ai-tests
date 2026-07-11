@@ -1,0 +1,10 @@
+apiVersion: v2
+name: node-perf
+description: >-
+  Node performance-tuning benchmark harness. Runs CPU (sysbench), memory
+  (sysbench), and disk (fio) benchmarks on chosen nodes, then reports a
+  baseline-vs-tuned comparison with a per-metric delta. Sibling subject to
+  roce-perf; reuses the shared benchmark image.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
