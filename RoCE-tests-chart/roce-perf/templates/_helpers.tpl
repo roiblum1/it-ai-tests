@@ -73,8 +73,8 @@ Benchmark matrix as env vars, consumed by roce_bench.sh. Call with $root.
 - name: NUMA_NODE
   value: {{ .Values.numactl.node | quote }}
 {{- /* GPU_INDEX is per-pod (paired with each pod's nic), added by roce-perf.container */}}
-- name: NCCL_COLLECTIVE
-  value: {{ .Values.nccl.collective | quote }}
+- name: NCCL_COLLECTIVES
+  value: {{ .Values.nccl.collectives | join " " | quote }}
 - name: NCCL_SIZE_BEGIN
   value: {{ .Values.nccl.sizes.begin | quote }}
 - name: NCCL_SIZE_END

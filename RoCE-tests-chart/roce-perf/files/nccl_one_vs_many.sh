@@ -22,7 +22,8 @@ PEER="${1:-}"; LABEL="${2:-nccl}"
 [ -z "$PEER" ] && { echo "usage: $0 <peer_pod_ip|build> [env-label]"; exit 1; }
 
 RESULTS="${RESULTS:-/results}"
-COLLECTIVE="${NCCL_COLLECTIVE:-all_reduce_perf}"
+# One or more nccl-tests binaries; EACH is run one-HCA then all-HCA.
+COLLECTIVES="${NCCL_COLLECTIVES:-all_reduce_perf}"
 BEGIN="${NCCL_SIZE_BEGIN:-8}"; END="${NCCL_SIZE_END:-128M}"; FACTOR="${NCCL_SIZE_FACTOR:-2}"
 GPUS="${NCCL_GPUS:-1}"
 IMAGE="${IMAGE:-unknown}"
@@ -50,12 +51,19 @@ RAIL_ROUTES="${RAIL_ROUTES:-/opt/roce/rail_routes.sh}"
 # cross-build under x86 emulation); on a GPU node the native nvcc works. compute_90
 # PTX also JIT-forward-runs on Blackwell (B200/B300).
 build_nccl_tests() {
-  [ -x "$NCCL_TESTS_DIR/build/$COLLECTIVE" ] && return 0
+  # `make MPI=1` builds EVERY *_perf binary, so if the requested ones are all
+  # present we're done; otherwise build once and verify each requested collective.
+  local c missing=0
+  for c in $COLLECTIVES; do [ -x "$NCCL_TESTS_DIR/build/$c" ] || missing=1; done
+  [ "$missing" = 0 ] && return 0
   echo "nccl-tests not built yet -> building on this node (native nvcc)..."
   make -C "$NCCL_TESTS_DIR" -j"$(nproc)" MPI=1 \
        MPI_HOME="${MPI_HOME:-/usr/lib/x86_64-linux-gnu/openmpi}" CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}" \
        NVCC_GENCODE="${NCCL_TESTS_GENCODE:--gencode=arch=compute_90,code=sm_90 -gencode=arch=compute_90,code=compute_90}" \
     || { echo "nccl-tests build failed (need nvcc + GPU toolchain on this node)"; exit 1; }
+  for c in $COLLECTIVES; do
+    [ -x "$NCCL_TESTS_DIR/build/$c" ] || { echo "ERROR: collective '$c' not built (typo? not a nccl-tests binary?)"; exit 1; }
+  done
 }
 
 build_nccl_tests
@@ -132,9 +140,9 @@ NSIZES="$(awk -v b="$(to_bytes "$BEGIN")" -v e="$(to_bytes "$END")" -v f="$FACTO
 # and the peer's "connect ... :1024" times out (EINPROGRESS). Pin every MPI TCP
 # channel to the pod-SDN iface and force the plain ob1/tcp stack so MPI never
 # probes the rails.
-run_nccl(){ # hca outfile tag
-  local hca="$1" out="$2" tag="$3" np=$(( GPUS * 2 ))
-  echo ">>> NCCL $tag : NCCL_IB_HCA=$hca  ($COLLECTIVE $BEGIN..$END, $NSIZES sizes, $np ranks) -- this can take a while"
+run_nccl(){ # collective hca outfile tag
+  local coll="$1" hca="$2" out="$3" tag="$4" np=$(( GPUS * 2 ))
+  echo ">>> NCCL $coll $tag : NCCL_IB_HCA=$hca  ($BEGIN..$END, $NSIZES sizes, $np ranks) -- this can take a while"
   # shellcheck disable=SC2086
   mpirun --allow-run-as-root -np "$np" \
     -H "$(hostname):$GPUS,$PEER:$GPUS" \
@@ -153,9 +161,9 @@ run_nccl(){ # hca outfile tag
     ${IB_QPS:+-x NCCL_IB_QPS_PER_CONNECTION="$IB_QPS"} \
     ${PXN_DISABLE:+-x NCCL_PXN_DISABLE="$PXN_DISABLE"} \
     -x LD_LIBRARY_PATH -x PATH \
-    "$COLLECTIVE" -b "$BEGIN" -e "$END" -f "$FACTOR" -g 1 2>&1 \
+    "$coll" -b "$BEGIN" -e "$END" -f "$FACTOR" -g 1 2>&1 \
     | tee "$out" \
-    | awk -v total="$NSIZES" -v tag="$tag" '
+    | awk -v total="$NSIZES" -v tag="$coll $tag" '
         # echo NCCL/MPI diagnostics through; add a compact per-size progress line.
         /^[[:space:]]*#/ { print; next }
         $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {
@@ -164,12 +172,21 @@ run_nccl(){ # hca outfile tag
 }
 
 busbw(){ awk '/Avg bus bandwidth/ {v=$(NF)} END{print (v==""?"NA":v)}' "$1"; }
+num(){ [ "$1" = NA ] && echo 0 || echo "$1"; }
 
-echo "NCCL $COLLECTIVE  peer=$PEER  gpus/node=$GPUS  ranks=$(( GPUS * 2 ))  (one rank per GPU)"
+echo "NCCL collectives=[$COLLECTIVES]  peer=$PEER  gpus/node=$GPUS  ranks=$(( GPUS * 2 ))  (one rank per GPU)"
 echo "  one=$HCA_ONE  all=$HCA_ALL  gid_index=${GID_INDEX:-<none>}  sock=$SOCK_IFNAME  tc=${IB_TC:-default} qps=${IB_QPS:-default} pxn_disable=${PXN_DISABLE:-default}  -> $RUNDIR"
-run_nccl "$HCA_ONE" "$RUNDIR/nccl/one_hca.txt" "[1/2] one-HCA"
-run_nccl "$HCA_ALL" "$RUNDIR/nccl/all_hca.txt" "[2/2] all-HCA"
-ONE="$(busbw "$RUNDIR/nccl/one_hca.txt")"; ALL="$(busbw "$RUNDIR/nccl/all_hca.txt")"
+
+# Run each collective one-HCA then all-HCA; accumulate a per-collective JSON entry.
+ENTRIES=""
+for coll in $COLLECTIVES; do
+  cdir="$RUNDIR/nccl/$coll"; mkdir -p "$cdir"
+  run_nccl "$coll" "$HCA_ONE" "$cdir/one_hca.txt" "[one-HCA]"
+  run_nccl "$coll" "$HCA_ALL" "$cdir/all_hca.txt" "[all-HCA]"
+  one="$(busbw "$cdir/one_hca.txt")"; all="$(busbw "$cdir/all_hca.txt")"
+  echo "  $coll: one=$one  all=$all  GB/s"
+  ENTRIES="${ENTRIES:+$ENTRIES,}\"$coll\":{\"one\":{\"hca\":\"$HCA_ONE\",\"busbw\":$(num "$one")},\"all\":{\"hca\":\"$HCA_ALL\",\"busbw\":$(num "$all")}}"
+done
 
 cat > "$RUNDIR/setup.json" <<EOF
 {
@@ -179,15 +196,12 @@ cat > "$RUNDIR/setup.json" <<EOF
   "image": "$IMAGE",
   "date": "$(date -Is)",
   "gpudirect": true,
-  "collective": "$COLLECTIVE",
+  "collectives": "$COLLECTIVES",
   "gpus_per_node": $GPUS,
   "ranks": $(( GPUS * 2 )),
   "gid_index": "${GID_INDEX:-NA}"
 }
 EOF
 
-cat > "$RUNDIR/nccl/nccl.json" <<EOF
-{"collective":"$COLLECTIVE","one":{"hca":"$HCA_ONE","busbw":$( [ "$ONE" = NA ] && echo 0 || echo "$ONE")},"all":{"hca":"$HCA_ALL","busbw":$( [ "$ALL" = NA ] && echo 0 || echo "$ALL")}}
-EOF
-
-echo "DONE  one=$ONE GB/s  all=$ALL GB/s  -> $RUNDIR/nccl/nccl.json"
+printf '{"collectives":{%s}}\n' "$ENTRIES" > "$RUNDIR/nccl/nccl.json"
+echo "DONE  -> $RUNDIR/nccl/nccl.json"

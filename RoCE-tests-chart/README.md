@@ -120,7 +120,8 @@ Each client writes a per-run directory to its node-local results dir (`run_suite
   bw/{read,write}_bw.csv               # size,duration,bw_peak,bw_avg,msg_rate
   lat/<test>.unsorted.txt + .json      # raw -U samples + min/avg/p50/p99/p999/max
   lat/<test>.raw.txt                   # FULL perftest stdout (plot falls back to this)
-  nccl/{one_hca,all_hca}.txt + .json   # full nccl-tests tables + one/all busbw
+  nccl/<collective>/{one_hca,all_hca}.txt   # full nccl-tests table per collective
+  nccl/nccl.json                       # one/all busbw for every collective
   gpudirect/{bw,lat}/...               # same tree when gpudirect.enabled
   full.log
 /results/report/

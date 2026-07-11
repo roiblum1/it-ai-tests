@@ -1,7 +1,7 @@
 # NCCL benchmark deep dive — what we actually run, and how to read it
 
-This explains the `nccl` test in this chart end to end: what `all_reduce_perf`
-measures, what the numbers mean, what **one-HCA-vs-all** really compares (it is
+This explains the `nccl` test in this chart end to end: what the collectives
+measure, what the numbers mean, what **one-HCA-vs-all** really compares (it is
 *not* "which GPUs talk"), and why the same run can report **11 GB/s** or
 **174 GB/s** depending only on the message sizes. Read this alongside
 [values.yaml](roce-perf/values.yaml) (`nccl:` block) and
@@ -11,16 +11,38 @@ measures, what the numbers mean, what **one-HCA-vs-all** really compares (it is
 
 ## 1. What the test is
 
-We run **`all_reduce_perf`** from [nccl-tests](https://github.com/NVIDIA/nccl-tests).
+We run one or more **`*_perf`** binaries from
+[nccl-tests](https://github.com/NVIDIA/nccl-tests). `nccl.collectives` lists which
+ones; **each is swept one-HCA vs all-HCA** over the message-size range, and for
+each size the binary prints how long it took and two bandwidth numbers. Those
+tables are the benchmark.
 
-**AllReduce** is the collective that dominates data-parallel training: every GPU
-holds a partial gradient, and AllReduce sums all of them and hands the identical
-summed result back to every GPU. It is the single most bandwidth-hungry step in a
-training iteration, which is why "how fast is my fabric?" is, in practice, "how
-fast is AllReduce?". If AllReduce is slow, training is slow.
+The default `all_reduce_perf` dominates data-parallel training: every GPU holds a
+partial gradient, AllReduce sums them and returns the identical result to every
+GPU — the most bandwidth-hungry step in a training iteration, so "how fast is my
+fabric?" is, in practice, "how fast is AllReduce?".
 
-nccl-tests runs AllReduce over a **sweep of message sizes**, and for each size
-prints how long it took and two bandwidth numbers. That table is the benchmark.
+### 1a. The collectives we run — and why
+
+Each collective is a different **traffic pattern**, so running several profiles the
+fabric against the shapes your real workloads produce (not just one number):
+
+| Collective | Traffic shape | Maps to | Fabric stress |
+|---|---|---|---|
+| **all_reduce_perf** | reduce + broadcast (ring/tree) | tensor-parallel gradient/activation sync | canonical throughput; most fabric-sensitive |
+| **alltoall_perf** | every rank → every rank | **wide-EP MoE** dispatch/combine | **the** rail-crossing exposer — no locality to hide behind |
+| **reduce_scatter_perf** | reduce, each rank keeps a shard | TP + **sequence parallelism** (RS + AllGather, not AllReduce) | half of the SP communication pair |
+| **sendrecv_perf** | point-to-point ring | **prefill→decode KV** transfer path | pairwise link bandwidth, no collective fan-out |
+
+Why it matters here: **alltoall** has no same-leaf locality to exploit — every rank
+must reach every other, so a fraction of flows *always* cross the spine. It's the
+test that surfaces a weak spine or a mis-tuned rail the clearest. **sendrecv**
+proxies the disaggregated prefill→decode KV hand-off, where a single pair's link
+bandwidth (not aggregate collective busbw) is what bounds you.
+
+The report draws a **cross-collective comparison** (all-HCA busbw vs size, all
+collectives overlaid) so you can see them fan out — typically all_reduce ≥
+reduce_scatter > alltoall ≈ sendrecv on a spine-bound fabric.
 
 ### The layout we launch (one rank per GPU)
 
@@ -198,8 +220,10 @@ they are defaults here, but `tc` especially is switch-dependent (DSCP = `tc>>2` 
 
 ## 8. TL;DR
 
-- We run **AllReduce**, one **rank per GPU**, NVLink inside a node and **RoCE
-  across** the two nodes.
+- We run a **list of collectives** (`all_reduce`, `alltoall`, `reduce_scatter`,
+  `sendrecv`) — each a real traffic pattern; **alltoall** is the rail-crossing
+  exposer, **sendrecv** the KV-transfer proxy. One **rank per GPU**, NVLink inside
+  a node and **RoCE across** the two nodes.
 - **busbw** (not algbw) is the hardware number; compare it to aggregate rail line
   rate.
 - The **average** busbw depends entirely on the **size sweep** — `128M..8G` gives

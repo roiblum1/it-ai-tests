@@ -145,8 +145,15 @@ nccl:
     - ens38
     - ens39
   gpus: 8                           # GPUs per NODE. The launch is one rank PER GPU
-                                    # (-np = 2*gpus, -g 1), so 8 -> a 16-GPU all_reduce.
-  collective: all_reduce_perf
+                                    # (-np = 2*gpus, -g 1), so 8 -> a 16-GPU collective.
+  # Collectives to run -- EACH is swept one-HCA vs all-HCA. They map to real
+  # training/inference traffic patterns, so this is a fabric profile, not just a
+  # number. Trim the list to cut runtime (each collective = 2 heavy mpirun runs).
+  collectives:
+    - all_reduce_perf               # canonical tensor-parallel sync; most fabric-sensitive
+    - alltoall_perf                 # wide-EP MoE dispatch/combine; exposes rail-crossing cost
+    - reduce_scatter_perf           # TP + sequence-parallel is reduce_scatter + all_gather
+    - sendrecv_perf                 # point-to-point; proxies prefill->decode KV transfer
   sizes:                            # Heavy/throughput sweep: start where busbw is
     begin: "128M"                   # -b  already saturated so the AVG reflects the
     end: "8G"                       # -e  fabric, not the small-message latency floor
